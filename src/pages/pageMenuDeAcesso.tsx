@@ -16,6 +16,8 @@ import {
   Typography,
 } from "@mui/material";
 import { AlignHorizontalCenter } from "@mui/icons-material";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import { IconButton, Tooltip } from "@mui/material";
 
 interface Usuario {
   nome: string;
@@ -247,24 +249,94 @@ const PageMenuDeAcesso: React.FC = () => {
         </Box>
       </Modal>
       {usuarios.length > 0 && (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Usuário</TableCell>
-                <TableCell>E-mail</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {usuarios.map((usuario, index) => (
-                <TableRow key={index}>
-                  <TableCell>{usuario.nome}</TableCell>
-                  <TableCell>{usuario.email}</TableCell>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            mt: 4,
+          }}
+        >
+          <TableContainer
+            component={Paper}
+            sx={{
+              width: "80%", // Define a largura da tabela (ajuste conforme necessário)
+              maxWidth: 600, // Largura máxima da tabela
+              boxShadow: 3, // Adiciona sombra
+              borderRadius: 2, // Bordas arredondadas
+              overflow: "hidden", // Garante que o conteúdo não extrapole
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow
+                  sx={{
+                    backgroundColor: "#8323A0", // Fundo do cabeçalho
+                  }}
+                >
+                  <TableCell
+                    sx={{
+                      color: "white", // Cor do texto no cabeçalho
+                      fontWeight: "bold",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    Usuário
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      color: "white", // Cor do texto no cabeçalho
+                      fontWeight: "bold",
+                      fontSize: "1rem",
+                    }}
+                  >
+                    E-mail
+                  </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+              </TableHead>
+              <TableBody>
+                {usuarios.map((usuario, index) => (
+                  <TableRow key={index}>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.9rem", // Ajuste do tamanho do texto
+                        whiteSpace: "nowrap", // Evita quebras de linha
+                        overflow: "hidden", // Garante que o texto não extrapole
+                        textOverflow: "ellipsis", // Adiciona reticências caso o texto seja muito longo
+                      }}
+                    >
+                      {usuario.nome}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        fontSize: "0.9rem", // Ajuste do tamanho do texto
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      {usuario.email}
+                      <Tooltip title="Copiar e-mail">
+                        <IconButton
+                          size="small"
+                          onClick={() => {
+                            navigator.clipboard.writeText(usuario.email);
+                          }}
+                          sx={{
+                            color: "#8323A0", // Cor do ícone
+                            "&:hover": { color: "#6f1f8e" }, // Cor ao passar o mouse
+                          }}
+                        >
+                          <ContentCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Box>
       )}
     </Box>
   );

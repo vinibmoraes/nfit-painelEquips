@@ -72,8 +72,8 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const buscarUsuarios = async (baseId: number) => {
-    const urlUsuarios = `https://apiadm.nextfit.com.br/api/Cadastro/ListarUsuarios?baseId=${baseId}`;
+  const buscarUsuarios = async (codigoCadastro: number) => {
+    const urlUsuarios = `https://apiadm.nextfit.com.br/api/Usuario/RecuperarUsuariosCadastro?AcessoBloqueado=false&CodigoCadastro=${codigoCadastro}&Inativo=false&limit=20&page=1&sort=%5B%7B%22property%22:%22Inativo%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22TipoPerfil%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22Nome%22,%22direction%22:%22asc%22%7D%5D`;
 
     const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
 
@@ -94,7 +94,7 @@ const PageMenuDeAcesso: React.FC = () => {
 
       const data = await response.json();
       setUsuarios(
-        data.map((usuario: any) => ({
+        data.Content.map((usuario: any) => ({
           nome: usuario.Nome,
           email: usuario.Email,
         }))

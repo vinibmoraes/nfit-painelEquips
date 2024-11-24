@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import EmailIcon from "@mui/icons-material/Email";
-import iconPainel from "../assets/icon-nextfit.webp";
 import {
   Box,
   Button,
@@ -15,7 +14,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { AlignHorizontalCenter } from "@mui/icons-material";
 
 interface Usuario {
   nome: string;
@@ -34,6 +32,7 @@ const PageMenuDeAcesso: React.FC = () => {
   const [bases, setBases] = useState<Base[]>([]);
   const [baseSelecionada, setBaseSelecionada] = useState<Base | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   const buscarBases = async () => {
     const emailClienteSemEspaco = email.trim();
@@ -61,15 +60,28 @@ const PageMenuDeAcesso: React.FC = () => {
 
       if (basesEncontradas.length === 1) {
         selecionarBase(basesEncontradas[0]);
-      } else if (basesEncontradas.length > 1) {
+      } else if (basesEncontradas.length > 0) {
         setBases(basesEncontradas);
         setModalOpen(true);
       } else {
         console.log("Nenhuma base encontrada.");
       }
+
+      setIsSearching(true); // Marca que a busca foi realizada
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
     }
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    buscarBases();
+  };
+
+  const selecionarBase = (base: Base) => {
+    setBaseSelecionada(base);
+    setModalOpen(false);
+    buscarUsuarios(base.Id);
   };
 
   const buscarUsuarios = async (codigoCadastro: number) => {
@@ -104,26 +116,19 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    buscarBases();
-  };
-
-  const selecionarBase = (base: Base) => {
-    setBaseSelecionada(base);
-    setModalOpen(false);
-    buscarUsuarios(base.Id);
-  };
-
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Box
         component="form"
         onSubmit={handleSearchSubmit}
         sx={{
+          position: "absolute",
+          top: isSearching ? "2rem" : "50%",
+          left: "50%",
+          transform: isSearching ? "translate(-50%, 0)" : "translate(-50%, -50%)",
+          transition: "top 0.5s, transform 0.5s",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
           gap: 2,
           mb: 4,
         }}
@@ -135,15 +140,13 @@ const PageMenuDeAcesso: React.FC = () => {
           fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          sx={{
-            maxWidth: 400, // Define uma largura máxima
-            width: "100%", // Garante que seja responsivo até o limite de maxWidth
-          }}
+          sx={{ maxWidth: 400 }}
         />
         <Button type="submit" variant="contained">
           Buscar
         </Button>
       </Box>
+
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <Box
           sx={{
@@ -151,103 +154,46 @@ const PageMenuDeAcesso: React.FC = () => {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "90%", // Ajuste para telas menores
-            maxWidth: 500, // Largura máxima
-            maxHeight: "80vh", // Altura máxima
+            width: "90%",
+            maxWidth: 500,
             bgcolor: "background.paper",
             border: "2px solid",
             borderColor: "divider",
             borderRadius: 2,
             boxShadow: 24,
-            display: "flex",
-            flexDirection: "column",
-            overflow: "hidden", // Para garantir que o conteúdo não extrapole
+            p: 4,
           }}
         >
-          {/* Cabeçalho fixo */}
-          <Box
-            sx={{
-              position: "sticky",
-              top: 0,
-              bgcolor: "background.paper",
-              zIndex: 1,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              padding: 2,
-            }}
-          >
-            <Box sx={{ display: "flex", justifyContent: "center" }}>
-              <Typography
-                variant="h5"
-                gutterBottom
-                sx={{ fontFamily: "'Roboto', sans-serif" }}
-              >
-                Selecione uma Base:
+          <Typography variant="h5" gutterBottom>
+            Selecione uma Base:
+          </Typography>
+          {bases.map((base) => (
+            <Box
+              key={base.Id}
+              sx={{
+                cursor: "pointer",
+                padding: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                mb: 2,
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+              onClick={() => selecionarBase(base)}
+            >
+              <Typography>
+                <strong>Unidade:</strong> {base.Nome}
+              </Typography>
+              <Typography>
+                <strong>Alunos ativos:</strong> {base.AlunosAtivos}
               </Typography>
             </Box>
-          </Box>
-
-          {/* Área rolável */}
-          <Box
-            sx={{
-              flex: 1,
-              overflowY: "auto", // Ativa o scroll vertical
-              padding: 2,
-            }}
-          >
-            {bases.map((base) => (
-              <Box
-                key={base.Id}
-                sx={{
-                  cursor: "pointer",
-                  padding: 2,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 1,
-                  mb: 2,
-                  "&:hover": { bgcolor: "action.hover" },
-                }}
-                onClick={() => selecionarBase(base)}
-              >
-                <Typography>
-                  <strong>Unidade:</strong> {base.Nome}
-                </Typography>
-                <Typography>
-                  <strong>Alunos ativos:</strong> {base.AlunosAtivos}
-                </Typography>
-              </Box>
-            ))}
-          </Box>
-
-          {/* Botão fixo no final */}
-          <Box
-            sx={{
-              position: "sticky",
-              bottom: 0,
-              bgcolor: "background.paper",
-              zIndex: 1,
-              borderTop: "1px solid",
-              borderColor: "divider",
-              padding: 2,
-            }}
-          >
-            <Button
-              variant="contained"
-              color="secondary"
-              fullWidth
-              onClick={() => setModalOpen(false)}
-              sx={{
-                backgroundColor: "#8323A0",
-                "&:hover": { backgroundColor: "#6f1f8e" },
-              }}
-            >
-              Fechar
-            </Button>
-          </Box>
+          ))}
         </Box>
       </Modal>
+
       {usuarios.length > 0 && (
-        <TableContainer component={Paper}>
+        <TableContainer component={Paper} sx={{ mt: 4, mx: "auto", maxWidth: "90%" }}>
           <Table>
             <TableHead>
               <TableRow>

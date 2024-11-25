@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useSnackbar } from "notistack";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Container, TextField, Grid } from "@mui/material";
+import { Box, Button, Container, TextField, Grid, Typography } from "@mui/material";
 import logo from "../assets/logo-roxa-nextfit.webp";
 
 export const PageLogin = () => {
@@ -131,6 +131,7 @@ export const PageLogin = () => {
         </Box>
       </Container>
     </Box>
+    
   );
 };
 

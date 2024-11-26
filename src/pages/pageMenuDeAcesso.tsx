@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import EmailIcon from "@mui/icons-material/Email";
-import iconPainel from "../assets/icon-nextfit.webp";
+import FileCopyIcon from "@mui/icons-material/FileCopy";
+import PhoneIcon from "@mui/icons-material/Phone";
 import {
   Box,
   Button,
@@ -14,14 +15,15 @@ import {
   TableRow,
   TextField,
   Typography,
+  IconButton,
 } from "@mui/material";
-import { AlignHorizontalCenter } from "@mui/icons-material";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { IconButton, Tooltip } from "@mui/material";
+import { enqueueSnackbar, useSnackbar } from "notistack";
 
 interface Usuario {
   nome: string;
   email: string;
+  dddFone: string;
+  fone: string;
 }
 
 interface Base {
@@ -36,6 +38,7 @@ const PageMenuDeAcesso: React.FC = () => {
   const [bases, setBases] = useState<Base[]>([]);
   const [baseSelecionada, setBaseSelecionada] = useState<Base | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   const buscarBases = async () => {
     const emailClienteSemEspaco = email.trim();
@@ -63,15 +66,28 @@ const PageMenuDeAcesso: React.FC = () => {
 
       if (basesEncontradas.length === 1) {
         selecionarBase(basesEncontradas[0]);
-      } else if (basesEncontradas.length > 1) {
+      } else if (basesEncontradas.length > 0) {
         setBases(basesEncontradas);
         setModalOpen(true);
       } else {
         console.log("Nenhuma base encontrada.");
       }
+
+      setIsSearching(true);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
     }
+  };
+
+  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    buscarBases();
+  };
+
+  const selecionarBase = (base: Base) => {
+    setBaseSelecionada(base);
+    setModalOpen(false);
+    buscarUsuarios(base.Id);
   };
 
   const buscarUsuarios = async (codigoCadastro: number) => {
@@ -99,6 +115,8 @@ const PageMenuDeAcesso: React.FC = () => {
         data.Content.map((usuario: any) => ({
           nome: usuario.Nome,
           email: usuario.Email,
+          dddFone: usuario.DddFone,
+          fone: usuario.Fone,
         }))
       );
     } catch (error) {
@@ -106,26 +124,32 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    buscarBases();
+  const copiarEmail = (email: string) => {
+    navigator.clipboard.writeText(email);
+    enqueueSnackbar("E-mail copiado!", { variant: "info" });
   };
 
-  const selecionarBase = (base: Base) => {
-    setBaseSelecionada(base);
-    setModalOpen(false);
-    buscarUsuarios(base.Id);
+  const copiarTelefone = (dddFone: string, fone: string) => {
+    const telefoneFormatado = `(${dddFone}) ${fone}`;
+    navigator.clipboard.writeText(telefoneFormatado);
+    enqueueSnackbar("Telefone copiado!", { variant: "info" });
   };
 
   return (
-    <Box sx={{ p: 2 }}>
+    <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Box
         component="form"
         onSubmit={handleSearchSubmit}
         sx={{
+          position: "absolute",
+          top: isSearching ? "2rem" : "50%",
+          left: "50%",
+          transform: isSearching
+            ? "translate(-50%, 0)"
+            : "translate(-50%, -50%)",
+          transition: "top 0.5s, transform 0.5s",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center",
           gap: 2,
           mb: 4,
         }}
@@ -137,15 +161,13 @@ const PageMenuDeAcesso: React.FC = () => {
           fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          sx={{
-            maxWidth: 400, // Define uma largura máxima
-            width: "100%", // Garante que seja responsivo até o limite de maxWidth
-          }}
+          sx={{ width: "60vh" }}
         />
         <Button type="submit" variant="contained">
           Buscar
         </Button>
       </Box>
+
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <Box
           sx={{
@@ -153,9 +175,8 @@ const PageMenuDeAcesso: React.FC = () => {
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: "90%", // Ajuste para telas menores
-            maxWidth: 500, // Largura máxima
-            maxHeight: "80vh", // Altura máxima
+            width: "90%",
+            maxWidth: 500,
             bgcolor: "background.paper",
             border: "2px solid",
             borderColor: "divider",
@@ -163,38 +184,30 @@ const PageMenuDeAcesso: React.FC = () => {
             boxShadow: 24,
             display: "flex",
             flexDirection: "column",
-            overflow: "hidden", // Para garantir que o conteúdo não extrapole
+            maxHeight: "80vh",
           }}
         >
-          {/* Cabeçalho fixo */}
-          <Box
+          <Typography
+            variant="h5"
             sx={{
+              p: 2,
+              borderBottom: "1px solid",
+              borderColor: "divider",
               position: "sticky",
               top: 0,
               bgcolor: "background.paper",
               zIndex: 1,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              padding: 2,
+              display: "flex",
+              justifyContent: "center",
             }}
           >
-            <Box sx={{ display: "flex", justifyContent: "center" }}>
-              <Typography
-                variant="h5"
-                gutterBottom
-                sx={{ fontFamily: "'Roboto', sans-serif" }}
-              >
-                Selecione uma Base:
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* Área rolável */}
+            Selecione uma Base
+          </Typography>
           <Box
             sx={{
-              flex: 1,
-              overflowY: "auto", // Ativa o scroll vertical
-              padding: 2,
+              flexGrow: 1,
+              overflowY: "auto",
+              p: 2,
             }}
           >
             {bases.map((base) => (
@@ -220,123 +233,135 @@ const PageMenuDeAcesso: React.FC = () => {
               </Box>
             ))}
           </Box>
-
-          {/* Botão fixo no final */}
           <Box
             sx={{
-              position: "sticky",
-              bottom: 0,
-              bgcolor: "background.paper",
-              zIndex: 1,
+              p: 2,
               borderTop: "1px solid",
               borderColor: "divider",
-              padding: 2,
+              display: "flex",
+              justifyContent: "center",
+              bgcolor: "background.paper",
             }}
           >
-            <Button
-              variant="contained"
-              color="secondary"
-              fullWidth
-              onClick={() => setModalOpen(false)}
-              sx={{
-                backgroundColor: "#8323A0",
-                "&:hover": { backgroundColor: "#6f1f8e" },
-              }}
-            >
+            <Button variant="contained" onClick={() => setModalOpen(false)}>
               Fechar
             </Button>
           </Box>
         </Box>
       </Modal>
+
       {usuarios.length > 0 && (
-        <Box
+        <TableContainer
+          component={Paper}
           sx={{
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
             mt: 4,
+            mx: "auto",
+            maxWidth: "50%", // Ajuste para deixar a tabela responsiva
+            marginTop: "220px",
+            maxHeight: "50vh", // Limita a altura da tabela para 60% da altura da tela
+            overflowY: "auto", // Permite rolagem se necessário
+            boxShadow: 1, // Sombra mais discreta para a tabela
+            borderRadius: 2, // Bordas arredondadas para suavizar o visual
           }}
         >
-          <TableContainer
-            component={Paper}
-            sx={{
-              width: "80%", // Define a largura da tabela (ajuste conforme necessário)
-              maxWidth: 600, // Largura máxima da tabela
-              boxShadow: 3, // Adiciona sombra
-              borderRadius: 2, // Bordas arredondadas
-              overflow: "hidden", // Garante que o conteúdo não extrapole
-            }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow
+          <Table sx={{ minWidth: 650 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell
                   sx={{
-                    backgroundColor: "#8323A0", // Fundo do cabeçalho
+                    borderRight: "1px solid",
+                    borderColor: "divider",
+                    backgroundColor: "#f5f5f5", // Cor de fundo suave no cabeçalho
+                    fontWeight: "bold",
+                    padding: "12px", // Aumenta o padding para mais espaço interno
+                    textAlign: "left", // Alinha o texto à esquerda
+                    fontSize: "16px", // Ajusta o tamanho da fonte
+                  }}
+                >
+                  Usuário
+                </TableCell>
+                <TableCell
+                  sx={{
+                    backgroundColor: "#f5f5f5", // Cor de fundo suave no cabeçalho
+                    fontWeight: "bold",
+                    padding: "12px",
+                    fontSize: "16px",
+                    textAlign: "left", // Alinha o texto à esquerda
+                  }}
+                >
+                  E-mail
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {usuarios.map((usuario, index) => (
+                <TableRow
+                  key={index}
+                  sx={{
+                    "&:hover": {
+                      backgroundColor: "action.hover", // Efeito hover para as linhas
+                    },
                   }}
                 >
                   <TableCell
                     sx={{
-                      color: "white", // Cor do texto no cabeçalho
-                      fontWeight: "bold",
-                      fontSize: "1rem",
+                      borderRight: "1px solid",
+                      borderColor: "divider",
+                      padding: "12px", // Aumenta o padding para mais espaço
+                      fontSize: "14px", // Ajusta o tamanho da fonte para um visual mais limpo
                     }}
                   >
-                    Usuário
+                    {usuario.nome}
                   </TableCell>
                   <TableCell
                     sx={{
-                      color: "white", // Cor do texto no cabeçalho
-                      fontWeight: "bold",
-                      fontSize: "1rem",
+                      display: "flex",
+                      justifyContent: "space-between", // Divide a célula em duas partes
+                      alignItems: "center",
+                      padding: "12px", // Aumenta o padding
+                      fontSize: "14px", // Ajusta o tamanho da fonte
+                      borderColor: "divider",
                     }}
                   >
-                    E-mail
+                    <span>{usuario.email}</span> {/* E-mail fica à esquerda */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        gap: 1, // Espaço entre os ícones
+                        alignItems: "center",
+                      }}
+                    >
+                      <IconButton
+                        onClick={() => copiarEmail(usuario.email)}
+                        sx={{
+                          color: "#8323A0", // Cor do ícone de copiar
+                          "&:hover": {
+                            color: "#6C1E9B", // Cor do ícone quando o mouse passa sobre ele
+                          },
+                        }}
+                      >
+                        <FileCopyIcon />
+                      </IconButton>
+                      <IconButton
+                        onClick={() =>
+                          copiarTelefone(usuario.dddFone, usuario.fone)
+                        }
+                        sx={{
+                          color: "#8323A0", // Cor do ícone de telefone
+                          "&:hover": {
+                            color: "#6C1E9B", // Cor do ícone quando o mouse passa sobre ele
+                          },
+                        }}
+                      >
+                        <PhoneIcon />
+                      </IconButton>
+                    </Box>
                   </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {usuarios.map((usuario, index) => (
-                  <TableRow key={index}>
-                    <TableCell
-                      sx={{
-                        fontSize: "0.9rem", // Ajuste do tamanho do texto
-                        whiteSpace: "nowrap", // Evita quebras de linha
-                        overflow: "hidden", // Garante que o texto não extrapole
-                        textOverflow: "ellipsis", // Adiciona reticências caso o texto seja muito longo
-                      }}
-                    >
-                      {usuario.nome}
-                    </TableCell>
-                    <TableCell
-                      sx={{
-                        fontSize: "0.9rem", // Ajuste do tamanho do texto
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      {usuario.email}
-                      <Tooltip title="Copiar e-mail">
-                        <IconButton
-                          size="small"
-                          onClick={() => {
-                            navigator.clipboard.writeText(usuario.email);
-                          }}
-                          sx={{
-                            color: "#8323A0", // Cor do ícone
-                            "&:hover": { color: "#6f1f8e" }, // Cor ao passar o mouse
-                          }}
-                        >
-                          <ContentCopyIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </Box>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
     </Box>
   );

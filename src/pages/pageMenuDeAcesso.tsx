@@ -39,8 +39,10 @@ const PageMenuDeAcesso: React.FC = () => {
   const [baseSelecionada, setBaseSelecionada] = useState<Base | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
 
   const buscarBases = async () => {
+    setIsSearching(true);
     const emailClienteSemEspaco = email.trim();
     const urlBuscaCliente = `https://apiadm.nextfit.com.br/api/Cadastro/ListarView?Ativacao=null&DataCancelamentoFinal=null&DataCancelamentoInicial=null&DataInicioFinal=null&DataInicioInicial=null&DataUltimoAcessoFinal=null&DataUltimoAcessoInicial=null&EmAtencao=null&PesquisaGeral=${emailClienteSemEspaco}&RealizouTreinamento=null&Status=%5B1,3,2,5,6%5D&Trial=null&Vip=null&page=1&sort=%5B%7B%22property%22:%22DataCriacao%22,%22direction%22:%22desc%22%7D,%7B%22property%22:%22Id%22,%22direction%22:%22desc%22%7D%5D`;
 
@@ -48,6 +50,7 @@ const PageMenuDeAcesso: React.FC = () => {
 
     if (!refresh_tokenInterno) {
       console.error("Token não encontrado no localStorage");
+      setIsSearching(false);
       return;
     }
 
@@ -64,18 +67,31 @@ const PageMenuDeAcesso: React.FC = () => {
       const data = await response.json();
       const basesEncontradas: Base[] = data.Content;
 
+      if (basesEncontradas.length === 0) {
+        enqueueSnackbar("Nenhuma base encontrada.", {
+          variant: "info",
+        });
+        setIsSearching(false); // Finaliza a busca
+        return;
+      }
+
+      setBases(basesEncontradas);
+      setSearchCompleted(true); // Marca como concluído
+      setModalOpen(basesEncontradas.length > 1);
+
       if (basesEncontradas.length === 1) {
         selecionarBase(basesEncontradas[0]);
+        setIsSearching(false);
       } else if (basesEncontradas.length > 0) {
         setBases(basesEncontradas);
         setModalOpen(true);
       } else {
         console.log("Nenhuma base encontrada.");
       }
-
-      setIsSearching(true);
+      setIsSearching(false);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
+      setIsSearching(false);
     }
   };
 
@@ -142,9 +158,9 @@ const PageMenuDeAcesso: React.FC = () => {
         onSubmit={handleSearchSubmit}
         sx={{
           position: "absolute",
-          top: isSearching ? "2rem" : "50%",
+          top: searchCompleted ? "2rem" : "50%",
           left: "50%",
-          transform: isSearching
+          transform: searchCompleted
             ? "translate(-50%, 0)"
             : "translate(-50%, -50%)",
           transition: "top 0.5s, transform 0.5s",
@@ -163,8 +179,8 @@ const PageMenuDeAcesso: React.FC = () => {
           onChange={(e) => setEmail(e.target.value)}
           sx={{ width: "60vh" }}
         />
-        <Button type="submit" variant="contained">
-          Buscar
+        <Button type="submit" variant="contained" disabled={isSearching}>
+          {isSearching ? "Buscando..." : "Buscar"}
         </Button>
       </Box>
 

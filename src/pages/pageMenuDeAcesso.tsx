@@ -290,6 +290,44 @@ const PageMenuDeAcesso: React.FC = () => {
         </Typography>
       </Box>
 
+      {baseSelecionada && usuarios.length > 0 && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-around", // Distribui os botões igualmente
+            gap: "5vh",
+            // Espaço entre a razão social e os botões
+            paddingX: "25vh",
+            paddingY: "2vh",
+          }}
+        >
+          <Button
+            variant="contained"
+            sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
+          >
+            Criar usuário catraca
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
+          >
+            Criar equipamentos
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
+          >
+            Adicionar observação
+          </Button>
+          <Button
+            variant="contained"
+            sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
+          >
+            Visualizar últimos acessos
+          </Button>
+        </Box>
+      )}
+
       <Box
         component="form"
         onSubmit={handleSearchSubmit}

@@ -28,6 +28,7 @@ interface Usuario {
 
 interface Base {
   Id: number;
+  CodigoUnidade: number;
   Nome: string;
   AlunosAtivos: number;
 }
@@ -42,6 +43,7 @@ const PageMenuDeAcesso: React.FC = () => {
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
 
   const buscarBases = async () => {
+    // debugger;
     setIsSearching(true);
     const emailClienteSemEspaco = email.trim();
     const urlBuscaCliente = `https://apiadm.nextfit.com.br/api/Cadastro/ListarView?Ativacao=null&DataCancelamentoFinal=null&DataCancelamentoInicial=null&DataInicioFinal=null&DataInicioInicial=null&DataUltimoAcessoFinal=null&DataUltimoAcessoInicial=null&EmAtencao=null&PesquisaGeral=${emailClienteSemEspaco}&RealizouTreinamento=null&Status=%5B1,3,2,5,6%5D&Trial=null&Vip=null&page=1&sort=%5B%7B%22property%22:%22DataCriacao%22,%22direction%22:%22desc%22%7D,%7B%22property%22:%22Id%22,%22direction%22:%22desc%22%7D%5D`;
@@ -65,7 +67,12 @@ const PageMenuDeAcesso: React.FC = () => {
       if (!response.ok) throw new Error("Erro ao buscar bases");
 
       const data = await response.json();
-      const basesEncontradas: Base[] = data.Content;
+      const basesEncontradas: Base[] = data.Content.map((base: any) => ({
+        Id: base.Id,
+        CodigoUnidade: base.CodigoUnidade,
+        Nome: base.Nome,
+        AlunosAtivos: base.AlunosAtivos,
+      }));
 
       if (basesEncontradas.length === 0) {
         enqueueSnackbar("Nenhuma base encontrada.", {
@@ -82,6 +89,11 @@ const PageMenuDeAcesso: React.FC = () => {
       if (basesEncontradas.length === 1) {
         selecionarBase(basesEncontradas[0]);
         setIsSearching(false);
+        localStorage.setItem("unidadeId", basesEncontradas[0].Id.toString());
+        localStorage.setItem(
+          "codigoUnidade",
+          basesEncontradas[0].CodigoUnidade.toString()
+        );
       } else if (basesEncontradas.length > 0) {
         setBases(basesEncontradas);
         setModalOpen(true);
@@ -103,6 +115,8 @@ const PageMenuDeAcesso: React.FC = () => {
   const selecionarBase = (base: Base) => {
     setBaseSelecionada(base);
     setModalOpen(false);
+    localStorage.setItem("unidadeId", base.Id.toString());
+    localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
     buscarUsuarios(base.Id);
   };
 
@@ -127,6 +141,22 @@ const PageMenuDeAcesso: React.FC = () => {
       if (!response.ok) throw new Error("Erro ao buscar usuários");
 
       const data = await response.json();
+
+      // Filtrar usuários do TipoPerfil 1
+      const usuariosTipoPerfil1 = data.Content.filter(
+        (usuario: any) => usuario.TipoPerfil === 1
+      );
+
+      if (usuariosTipoPerfil1.length > 0) {
+        // Armazena o primeiro usuário do TipoPerfil 1 no localStorage
+        const usuarioMaster = usuariosTipoPerfil1[0];
+        localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
+        console.log("Usuário master salvo:", usuarioMaster);
+      } else {
+        console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
+      }
+
+      // Atualizar o estado com todos os usuários
       setUsuarios(
         data.Content.map((usuario: any) => ({
           nome: usuario.Nome,

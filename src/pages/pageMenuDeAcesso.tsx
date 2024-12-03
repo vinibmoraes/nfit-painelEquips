@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   Box,
   Button,
@@ -18,6 +19,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
+import { URLSearchParams } from "url";
 
 interface Usuario {
   nome: string;
@@ -31,6 +33,8 @@ interface Base {
   CodigoUnidade: number;
   Nome: string;
   AlunosAtivos: number;
+  Status: number;
+  RazaoSocial: string;
 }
 
 const PageMenuDeAcesso: React.FC = () => {
@@ -72,6 +76,8 @@ const PageMenuDeAcesso: React.FC = () => {
         CodigoUnidade: base.CodigoUnidade,
         Nome: base.Nome,
         AlunosAtivos: base.AlunosAtivos,
+        Status: base.Status,
+        RazaoSocial: base.RazaoSocial,
       }));
 
       if (basesEncontradas.length === 0) {
@@ -118,6 +124,10 @@ const PageMenuDeAcesso: React.FC = () => {
     localStorage.setItem("unidadeId", base.Id.toString());
     localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
     buscarUsuarios(base.Id);
+    obterAccessTokenMaster(
+      base.CodigoUnidade,
+      parseInt(localStorage.getItem("IdUsuarioMaster") || "0")
+    );
   };
 
   const buscarUsuarios = async (codigoCadastro: number) => {
@@ -169,6 +179,45 @@ const PageMenuDeAcesso: React.FC = () => {
       console.error("Erro ao buscar usuários:", error);
     }
   };
+  // debugger;
+  const obterAccessTokenMaster = async (
+    codigo: number,
+    codigoUsuario: number
+  ) => {
+    const url = `https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario`;
+    const idUsuarioMaster = localStorage.getItem("IdUsuarioMaster");
+    const codUnidade = localStorage.getItem("codigoUnidade");
+    const payload = { Codigo: codUnidade, CodigoUsuario: idUsuarioMaster };
+    const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
+
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${refresh_tokenInterno}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) throw new Error("Erro ao obter o access token");
+
+      const data = await response.json();
+      const accessToken = data.Content.access_token;
+
+      if (accessToken) {
+        localStorage.setItem("accessTokenMaster", accessToken);
+        enqueueSnackbar("Access Token do usuário master salvo com sucesso!", {
+          variant: "success",
+        });
+      } else {
+        console.error("Access token não encontrado no response.");
+      }
+    } catch (error) {
+      console.error("Erro ao obter o access token:", error);
+      enqueueSnackbar("Erro ao obter o Access Token.", { variant: "error" });
+    }
+  };
 
   const copiarEmail = (email: string) => {
     navigator.clipboard.writeText(email);
@@ -183,6 +232,64 @@ const PageMenuDeAcesso: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      <Box
+        sx={{
+          mt: "15vh",
+          mx: "auto",
+          textAlign: "center",
+          fontWeight: "bold",
+          fontSize: "1.2rem",
+          color:
+            baseSelecionada?.Status === 1
+              ? "rgb(76,175,80)" // - ATIVO
+              : baseSelecionada?.Status === 2
+              ? "rgb(225,171,64)" // - SOMENTE LEITURA
+              : baseSelecionada?.Status === 3
+              ? "rgb(244,67,54)" // - BLOQUEADO
+              : "inherit", // Cor padrão
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {baseSelecionada?.RazaoSocial}{" "}
+          {baseSelecionada?.Status === 1
+            ? "- ATIVO"
+            : baseSelecionada?.Status === 2
+            ? "- SOMENTE LEITURA"
+            : baseSelecionada?.Status === 3
+            ? "- BLOQUEADO"
+            : ""}
+          {[1, 2, 3].includes(baseSelecionada?.Status ?? -1) && (
+            <IconButton
+              onClick={() =>
+                window.open(
+                  `https://adm.nextfit.com.br/cliente/${baseSelecionada?.Id}/cliente-dashboard`,
+                  "_blank"
+                )
+              }
+              sx={{
+                color:
+                  baseSelecionada?.Status === 1
+                    ? "rgb(76,175,80)" // Cor do botão ATIVO
+                    : baseSelecionada?.Status === 2
+                    ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
+                    : baseSelecionada?.Status === 3
+                    ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
+                    : "",
+              }}
+            >
+              <OpenInNewIcon />
+            </IconButton>
+          )}
+        </Typography>
+      </Box>
+
       <Box
         component="form"
         onSubmit={handleSearchSubmit}
@@ -300,10 +407,9 @@ const PageMenuDeAcesso: React.FC = () => {
         <TableContainer
           component={Paper}
           sx={{
-            mt: 4,
             mx: "auto",
             maxWidth: "50%", // Ajuste para deixar a tabela responsiva
-            marginTop: "220px",
+            marginTop: { xs: "1rem", sm: "2rem", md: "3rem" },
             maxHeight: "50vh", // Limita a altura da tabela para 60% da altura da tela
             overflowY: "auto", // Permite rolagem se necessário
             boxShadow: 1, // Sombra mais discreta para a tabela

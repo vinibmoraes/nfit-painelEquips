@@ -3,6 +3,7 @@ import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import MapIcon from "@mui/icons-material/Map";
 import {
   Box,
   Button,
@@ -17,6 +18,7 @@ import {
   TextField,
   Typography,
   IconButton,
+  Tooltip,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
@@ -228,6 +230,13 @@ const PageMenuDeAcesso: React.FC = () => {
     const telefoneFormatado = `(${dddFone}) ${fone}`;
     navigator.clipboard.writeText(telefoneFormatado);
     enqueueSnackbar("Telefone copiado!", { variant: "info" });
+  };
+
+  const handleMapClick = () => {
+    window.open(
+      "https://www.google.com.br/maps/d/edit?mid=1eyliVZGdAupULChAry8ZDpS_UCDNAKU&ll=-9.824164549175668%2C-49.41394982406761&z=4",
+      "_blank"
+    );
   };
 
   return (
@@ -553,6 +562,32 @@ const PageMenuDeAcesso: React.FC = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Ícone de Mapa no canto inferior esquerdo */}
+      <Box
+        sx={{
+          position: "fixed", // Fixa a posição
+          bottom: "16px", // Distância do fundo da tela
+          left: "16px", // Distância da lateral esquerda
+          zIndex: 9999, // Garante que o ícone fique acima de outros elementos
+        }}
+      >
+        <Tooltip title="Ver Mapa de parceiros">
+          <IconButton
+            onClick={handleMapClick} // Função chamada ao clicar no ícone
+            sx={{
+              backgroundColor: "#ffffff", // Cor de fundo do ícone
+              borderRadius: "50%", // Faz o ícone ficar arredondado
+              boxShadow: 3, // Adiciona uma sombra para destacar o ícone
+              "&:hover": {
+                backgroundColor: "#e0e0e0", // Efeito de hover
+              },
+            }}
+          >
+            <MapIcon sx={{ color: "#1976d2" }} /> {/* Cor do ícone */}
+          </IconButton>
+        </Tooltip>
+      </Box>
     </Box>
   );
 };

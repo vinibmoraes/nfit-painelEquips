@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import curupaco from "../assets/curupaco.png";
 import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -51,6 +50,11 @@ interface ApiResponse {
   Success: boolean;
 }
 
+interface Equipamento {
+  Descricao: string;
+  Id: number;
+}
+
 const PageMenuDeAcesso: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -61,17 +65,10 @@ const PageMenuDeAcesso: React.FC = () => {
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
   const [usuarioMaster, setUsuarioMaster] = useState<any>(null);
   const [cadastro, setCadastro] = useState<any>(null);
-
-  const [showBird, setShowBird] = useState(true);
-
-  // Esconde o passarinho após a animação
-  useEffect(() => {
-    const timer = setTimeout(() => setShowBird(false), 3000); // Remover após 3 segundos
-    return () => clearTimeout(timer); // Limpeza
-  }, []);
+  const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const buscarBases = async () => {
-    // debugger;
     setIsSearching(true);
     const emailClienteSemEspaco = email.trim();
     const urlBuscaCliente = `https://apiadm.nextfit.com.br/api/Cadastro/ListarView?Ativacao=null&DataCancelamentoFinal=null&DataCancelamentoInicial=null&DataInicioFinal=null&DataInicioInicial=null&DataUltimoAcessoFinal=null&DataUltimoAcessoInicial=null&EmAtencao=null&PesquisaGeral=${emailClienteSemEspaco}&RealizouTreinamento=null&Status=%5B1,3,2,5,6%5D&Trial=null&Vip=null&page=1&sort=%5B%7B%22property%22:%22DataCriacao%22,%22direction%22:%22desc%22%7D,%7B%22property%22:%22Id%22,%22direction%22:%22desc%22%7D%5D`;
@@ -136,6 +133,51 @@ const PageMenuDeAcesso: React.FC = () => {
       setIsSearching(false);
     }
   };
+
+  useEffect(() => {
+    const fetchEquipamentos = async () => {
+      const accessToken = localStorage.getItem("access_token");
+      if (!accessToken) {
+        console.error("Access token not found!");
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento?filter=%5B%7B%22property%22:%22Inativo%22,%22operator%22:%22equal%22,%22value%22:false,%22and%22:true%7D%5D&page=1",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (data.Success) {
+          setEquipamentos(
+            data.Content.map((item: any) => ({
+              Descricao: item.Descricao,
+              Id: item.Id,
+            }))
+          );
+        } else {
+          console.error("Failed to fetch equipamentos:", data.Message);
+        }
+      } catch (error) {
+        console.error("Error fetching equipamentos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEquipamentos();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -282,40 +324,8 @@ const PageMenuDeAcesso: React.FC = () => {
     );
   };
 
-  const voar = keyframes`
-    0% {
-      transform: translate(0, 0) scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: translate(50vw, -20vh) scale(1.2); /* Meio do trajeto */
-      opacity: 1;
-    }
-    100% {
-      transform: translate(100vw, -50vh) scale(0.5); /* Fora da tela */
-      opacity: 0;
-    }
-  `;
-
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
-      {showBird && (
-        <Box
-          sx={{
-            position: "absolute",
-            top: "50%", // Início no centro vertical
-            left: "0%", // Início na borda esquerda
-            width: "50px",
-            height: "50px",
-            backgroundImage: `url(${curupaco})`,
-            backgroundSize: "contain",
-            backgroundRepeat: "no-repeat",
-            animation: `${voar} 3s ease-in-out forwards`, // Aplica os keyframes
-            zIndex: 10, // Certifica-se que o passarinho está acima de outros elementos
-          }}
-        ></Box>
-      )}
-
       <Box
         sx={{
           mt: "15vh",
@@ -525,118 +535,154 @@ const PageMenuDeAcesso: React.FC = () => {
         </Box>
       </Modal>
 
-      {usuarios.length > 0 && (
-        <TableContainer
-          component={Paper}
-          sx={{
-            mx: "auto",
-            maxWidth: "50%", // Ajuste para deixar a tabela responsiva
-            marginTop: { xs: "1rem", sm: "2rem", md: "3rem" },
-            maxHeight: "50vh", // Limita a altura da tabela para 60% da altura da tela
-            overflowY: "auto", // Permite rolagem se necessário
-            boxShadow: 1, // Sombra mais discreta para a tabela
-            borderRadius: 2, // Bordas arredondadas para suavizar o visual
-          }}
-        >
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell
-                  sx={{
-                    borderRight: "1px solid",
-                    borderColor: "divider",
-                    backgroundColor: "#f5f5f5", // Cor de fundo suave no cabeçalho
-                    fontWeight: "bold",
-                    padding: "12px", // Aumenta o padding para mais espaço interno
-                    textAlign: "left", // Alinha o texto à esquerda
-                    fontSize: "16px", // Ajusta o tamanho da fonte
-                  }}
-                >
-                  Usuário
-                </TableCell>
-                <TableCell
-                  sx={{
-                    backgroundColor: "#f5f5f5", // Cor de fundo suave no cabeçalho
-                    fontWeight: "bold",
-                    padding: "12px",
-                    fontSize: "16px",
-                    textAlign: "left", // Alinha o texto à esquerda
-                  }}
-                >
-                  E-mail
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {usuarios.map((usuario, index) => (
-                <TableRow
-                  key={index}
-                  sx={{
-                    "&:hover": {
-                      backgroundColor: "action.hover", // Efeito hover para as linhas
-                    },
-                  }}
-                >
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 2,
+          padding: "2rem",
+          flexWrap: "nowrap", // Impede que as tabelas "quebrem linha"
+        }}
+      >
+        {equipamentos.length > 0 && (
+          <TableContainer
+            sx={{
+              flex: "1 1 30%", // Ocupa 30% do espaço disponível
+              maxWidth: "30%", // Limita o tamanho máximo
+              overflowY: "auto", // Adiciona rolagem quando necessário
+              boxShadow: 2,
+              borderRadius: 2,
+              height: "auto", // Altura dinâmica, mas controlada
+              maxHeight: "50vh", // Limita a altura para 50% da viewport
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow>
                   <TableCell
                     sx={{
-                      borderRight: "1px solid",
-                      borderColor: "divider",
-                      padding: "12px", // Aumenta o padding para mais espaço
-                      fontSize: "14px", // Ajusta o tamanho da fonte para um visual mais limpo
+                      backgroundColor: "#f5f5f5",
+                      fontWeight: "bold",
+                      textAlign: "center",
                     }}
                   >
-                    {usuario.nome}
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between", // Divide a célula em duas partes
-                      alignItems: "center",
-                      padding: "12px", // Aumenta o padding
-                      fontSize: "14px", // Ajusta o tamanho da fonte
-                      borderColor: "divider",
-                    }}
-                  >
-                    <span>{usuario.email}</span> {/* E-mail fica à esquerda */}
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 1, // Espaço entre os ícones
-                        alignItems: "center",
-                      }}
-                    >
-                      <IconButton
-                        onClick={() => copiarEmail(usuario.email)}
-                        sx={{
-                          color: "#8323A0", // Cor do ícone de copiar
-                          "&:hover": {
-                            color: "#6C1E9B", // Cor do ícone quando o mouse passa sobre ele
-                          },
-                        }}
-                      >
-                        <FileCopyIcon />
-                      </IconButton>
-                      <IconButton
-                        onClick={() =>
-                          copiarTelefone(usuario.dddFone, usuario.fone)
-                        }
-                        sx={{
-                          color: "#8323A0", // Cor do ícone de telefone
-                          "&:hover": {
-                            color: "#6C1E9B", // Cor do ícone quando o mouse passa sobre ele
-                          },
-                        }}
-                      >
-                        <PhoneIcon />
-                      </IconButton>
-                    </Box>
+                    Equipamento(s)
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
+              </TableHead>
+              <TableBody>
+                {equipamentos.map((equipamento, index) => (
+                  <TableRow
+                    key={index}
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "action.hover",
+                      },
+                    }}
+                  >
+                    <TableCell
+                      sx={{
+                        textAlign: "left",
+                        padding: "0.75rem",
+                      }}
+                    >
+                      {equipamento.Descricao}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+
+        {usuarios.length > 0 && (
+          <TableContainer
+            component={Paper}
+            sx={{
+              flex: "1 1 65%", // Ocupa 65% do espaço disponível
+              maxWidth: "65%", // Limita o tamanho máximo
+              overflowY: "auto", // Adiciona rolagem quando necessário
+              boxShadow: 2,
+              borderRadius: 2,
+              height: "auto",
+              maxHeight: "50vh", // Limita a altura para 50% da viewport
+            }}
+          >
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      fontWeight: "bold",
+                      textAlign: "left",
+                    }}
+                  >
+                    Usuário
+                  </TableCell>
+                  <TableCell
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      fontWeight: "bold",
+                      textAlign: "left",
+                    }}
+                  >
+                    E-mail
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {usuarios.map((usuario, index) => (
+                  <TableRow
+                    key={index}
+                    sx={{
+                      "&:hover": {
+                        backgroundColor: "action.hover",
+                      },
+                    }}
+                  >
+                    <TableCell sx={{ padding: "0.75rem" }}>
+                      {usuario.nome}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "0.75rem",
+                      }}
+                    >
+                      <span>{usuario.email}</span>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <IconButton
+                          onClick={() => copiarEmail(usuario.email)}
+                          sx={{
+                            color: "#8323A0",
+                            "&:hover": { color: "#6C1E9B" },
+                          }}
+                        >
+                          <FileCopyIcon />
+                        </IconButton>
+                        <IconButton
+                          onClick={() =>
+                            copiarTelefone(usuario.dddFone, usuario.fone)
+                          }
+                          sx={{
+                            color: "#8323A0",
+                            "&:hover": { color: "#6C1E9B" },
+                          }}
+                        >
+                          <PhoneIcon />
+                        </IconButton>
+                      </Box>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        )}
+      </Box>
 
       {/* Ícone de Mapa no canto inferior esquerdo */}
       <Box

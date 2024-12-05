@@ -59,6 +59,8 @@ const PageMenuDeAcesso: React.FC = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
+  const [usuarioMaster, setUsuarioMaster] = useState<any>(null);
+  const [cadastro, setCadastro] = useState<any>(null);
 
   const [showBird, setShowBird] = useState(true);
 
@@ -93,7 +95,7 @@ const PageMenuDeAcesso: React.FC = () => {
       if (!response.ok) throw new Error("Erro ao buscar bases");
 
       const data = await response.json();
-      const basesEncontradas: Base[] = data.Content.map((base: any) => ({
+      const basesEncontradas: Base[] = data.Content.map((base: Base) => ({
         Id: base.Id,
         CodigoUnidade: base.CodigoUnidade,
         Nome: base.Nome,
@@ -181,6 +183,8 @@ const PageMenuDeAcesso: React.FC = () => {
         const usuarioMaster = usuariosTipoPerfil1[0];
         localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
         console.log("Usuário master salvo:", usuarioMaster);
+
+        setUsuarioMaster(usuarioMaster);
       } else {
         console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
       }
@@ -200,21 +204,26 @@ const PageMenuDeAcesso: React.FC = () => {
   };
 
   const obterAccessTokenMaster = async (): Promise<void> => {
-    const codigoUnidade = localStorage.getItem("codigoUnidade");
-    const idUsuarioMaster = localStorage.getItem("IdUsuarioMaster");
     const refresh_tokenInterno2 = localStorage.getItem("refresh_tokenInterno");
 
-    if (!refresh_tokenInterno2! || !codigoUnidade || !idUsuarioMaster) {
+    if (!refresh_tokenInterno2) {
       enqueueSnackbar("Erro: Dados incompletos para obter o token.", {
         variant: "error",
       });
       return;
     }
 
+    if (!baseSelecionada?.Id) {
+      enqueueSnackbar("A base não foi encontrada.");
+      return;
+    }
+
     const payload = {
-      Codigo: parseInt(codigoUnidade, 10),
-      CodigoUsuario: parseInt(idUsuarioMaster, 10),
+      Codigo: baseSelecionada.Id,
+      CodigoUsuario: parseInt(usuarioMaster?.Id),
     };
+
+    console.log(payload);
 
     try {
       const response = await axios.post<ApiResponse>(

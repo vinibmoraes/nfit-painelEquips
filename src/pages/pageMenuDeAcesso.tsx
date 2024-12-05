@@ -333,6 +333,7 @@ const PageMenuDeAcesso: React.FC = () => {
           textAlign: "center",
           fontWeight: "bold",
           fontSize: "1.2rem",
+          mb: "30px",
           color:
             baseSelecionada?.Status === 1
               ? "rgb(76,175,80)" // - ATIVO
@@ -393,6 +394,7 @@ const PageMenuDeAcesso: React.FC = () => {
             // Espaço entre a razão social e os botões
             paddingX: "25vh",
             paddingY: "2vh",
+            mb: "40px",
           }}
         >
           <Button
@@ -538,150 +540,189 @@ const PageMenuDeAcesso: React.FC = () => {
       <Box
         sx={{
           display: "flex",
-          justifyContent: "space-between",
-          gap: 2,
-          padding: "2rem",
-          flexWrap: "nowrap", // Impede que as tabelas "quebrem linha"
+          justifyContent: "center", // Centraliza as tabelas no espaço disponível
+          paddingX: 2, // Margem horizontal
+          width: "100%",
+          maxWidth: "1200px", // Limita a largura máxima do conteúdo
+          margin: "0 auto", // Centraliza no container da página
         }}
       >
-        {equipamentos.length > 0 && (
-          <TableContainer
-            sx={{
-              flex: "1 1 30%", // Ocupa 30% do espaço disponível
-              maxWidth: "30%", // Limita o tamanho máximo
-              overflowY: "auto", // Adiciona rolagem quando necessário
-              boxShadow: 2,
-              borderRadius: 2,
-              height: "auto", // Altura dinâmica, mas controlada
-              maxHeight: "50vh", // Limita a altura para 50% da viewport
-            }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f5f5f5",
-                      fontWeight: "bold",
-                      textAlign: "center",
-                    }}
-                  >
-                    Equipamento(s)
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {equipamentos.map((equipamento, index) => (
-                  <TableRow
-                    key={index}
-                    sx={{
-                      "&:hover": {
-                        backgroundColor: "action.hover",
-                      },
-                    }}
-                  >
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 2,
+            width: "100%",
+          }}
+        >
+          {/* Tabela de Equipamentos */}
+          {equipamentos.length > 0 && (
+            <TableContainer
+              sx={{
+                flexBasis: "auto",
+                maxWidth: "35%", // Ajuste para a largura máxima
+                overflowY: "auto",
+                boxShadow: 1,
+                borderRadius: 2,
+                maxHeight: equipamentos.length > 0 ? "none" : "fit-content",
+              }}
+            >
+              <Table sx={{ minWidth: 300 }}>
+                <TableHead>
+                  <TableRow>
                     <TableCell
                       sx={{
+                        borderRight: "1px solid",
+                        borderColor: "divider",
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
+                        padding: "12px",
                         textAlign: "left",
-                        padding: "0.75rem",
+                        fontSize: "16px",
                       }}
                     >
-                      {equipamento.Descricao}
+                      Equipamento(s)
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                </TableHead>
+                <TableBody>
+                  {equipamentos.map((equipamento, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: "action.hover",
+                        },
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          borderRight: "1px solid",
+                          borderColor: "divider",
+                          padding: "12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {equipamento.Descricao}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
 
-        {usuarios.length > 0 && (
-          <TableContainer
-            component={Paper}
-            sx={{
-              flex: "1 1 65%", // Ocupa 65% do espaço disponível
-              maxWidth: "65%", // Limita o tamanho máximo
-              overflowY: "auto", // Adiciona rolagem quando necessário
-              boxShadow: 2,
-              borderRadius: 2,
-              height: "auto",
-              maxHeight: "50vh", // Limita a altura para 50% da viewport
-            }}
-          >
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f5f5f5",
-                      fontWeight: "bold",
-                      textAlign: "left",
-                    }}
-                  >
-                    Usuário
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      backgroundColor: "#f5f5f5",
-                      fontWeight: "bold",
-                      textAlign: "left",
-                    }}
-                  >
-                    E-mail
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {usuarios.map((usuario, index) => (
-                  <TableRow
-                    key={index}
-                    sx={{
-                      "&:hover": {
-                        backgroundColor: "action.hover",
-                      },
-                    }}
-                  >
-                    <TableCell sx={{ padding: "0.75rem" }}>
-                      {usuario.nome}
+          {/* Tabela de Usuários */}
+          {usuarios.length > 0 && (
+            <TableContainer
+              component={Paper}
+              sx={{
+                flexBasis: "65%",
+                maxWidth: "65%",
+                maxHeight: "50vh",
+                overflowY: "auto",
+                boxShadow: 1,
+                borderRadius: 2,
+              }}
+            >
+              <Table sx={{ minWidth: 300 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      sx={{
+                        borderRight: "1px solid",
+                        borderColor: "divider",
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "16px",
+                      }}
+                    >
+                      Usuário
                     </TableCell>
                     <TableCell
                       sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
                         alignItems: "center",
-                        padding: "0.75rem",
+                        padding: "12px",
+                        fontSize: "16px",
+                        textAlign: "left",
                       }}
                     >
-                      <span>{usuario.email}</span>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        <IconButton
-                          onClick={() => copiarEmail(usuario.email)}
-                          sx={{
-                            color: "#8323A0",
-                            "&:hover": { color: "#6C1E9B" },
-                          }}
-                        >
-                          <FileCopyIcon />
-                        </IconButton>
-                        <IconButton
-                          onClick={() =>
-                            copiarTelefone(usuario.dddFone, usuario.fone)
-                          }
-                          sx={{
-                            color: "#8323A0",
-                            "&:hover": { color: "#6C1E9B" },
-                          }}
-                        >
-                          <PhoneIcon />
-                        </IconButton>
-                      </Box>
+                      E-mail
                     </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+                </TableHead>
+                <TableBody>
+                  {usuarios.map((usuario, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: "action.hover",
+                        },
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          borderRight: "1px solid",
+                          borderColor: "divider",
+                          padding: "12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {usuario.nome}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "12px",
+                          fontSize: "14px",
+                          borderColor: "divider",
+                        }}
+                      >
+                        <span>{usuario.email}</span>
+                        <Box
+                          sx={{ display: "flex", gap: 1, alignItems: "center" }}
+                        >
+                          <IconButton
+                            onClick={() => copiarEmail(usuario.email)}
+                            sx={{
+                              color: "#8323A0",
+                              "&:hover": {
+                                color: "#6C1E9B",
+                              },
+                            }}
+                          >
+                            <FileCopyIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() =>
+                              copiarTelefone(usuario.dddFone, usuario.fone)
+                            }
+                            sx={{
+                              color: "#8323A0",
+                              "&:hover": {
+                                color: "#6C1E9B",
+                              },
+                            }}
+                          >
+                            <PhoneIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Box>
       </Box>
 
       {/* Ícone de Mapa no canto inferior esquerdo */}

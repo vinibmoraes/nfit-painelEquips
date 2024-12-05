@@ -1,10 +1,13 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import curupaco from "../assets/curupaco.png";
 import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import MapIcon from "@mui/icons-material/Map";
 import {
+  keyframes,
   Box,
   Button,
   Modal,
@@ -39,6 +42,15 @@ interface Base {
   RazaoSocial: string;
 }
 
+interface ApiResponse {
+  Content: {
+    access_token: string;
+    refresh_token: string;
+  };
+  Message: string;
+  Success: boolean;
+}
+
 const PageMenuDeAcesso: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -47,6 +59,14 @@ const PageMenuDeAcesso: React.FC = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
+
+  const [showBird, setShowBird] = useState(true);
+
+  // Esconde o passarinho após a animação
+  useEffect(() => {
+    const timer = setTimeout(() => setShowBird(false), 3000); // Remover após 3 segundos
+    return () => clearTimeout(timer); // Limpeza
+  }, []);
 
   const buscarBases = async () => {
     // debugger;
@@ -126,10 +146,7 @@ const PageMenuDeAcesso: React.FC = () => {
     localStorage.setItem("unidadeId", base.Id.toString());
     localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
     buscarUsuarios(base.Id);
-    obterAccessTokenMaster(
-      base.CodigoUnidade,
-      parseInt(localStorage.getItem("IdUsuarioMaster") || "0")
-    );
+    obterAccessTokenMaster();
   };
 
   const buscarUsuarios = async (codigoCadastro: number) => {
@@ -181,43 +198,60 @@ const PageMenuDeAcesso: React.FC = () => {
       console.error("Erro ao buscar usuários:", error);
     }
   };
-  // debugger;
-  const obterAccessTokenMaster = async (
-    codigo: number,
-    codigoUsuario: number
-  ) => {
-    const url = `https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario`;
+
+  const obterAccessTokenMaster = async (): Promise<void> => {
+    const codigoUnidade = localStorage.getItem("codigoUnidade");
     const idUsuarioMaster = localStorage.getItem("IdUsuarioMaster");
-    const codUnidade = localStorage.getItem("codigoUnidade");
-    const payload = { Codigo: codUnidade, CodigoUsuario: idUsuarioMaster };
-    const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
+    const refresh_tokenInterno2 = localStorage.getItem("refresh_tokenInterno");
+
+    if (!refresh_tokenInterno2! || !codigoUnidade || !idUsuarioMaster) {
+      enqueueSnackbar("Erro: Dados incompletos para obter o token.", {
+        variant: "error",
+      });
+      return;
+    }
+
+    const payload = {
+      Codigo: parseInt(codigoUnidade, 10),
+      CodigoUsuario: parseInt(idUsuarioMaster, 10),
+    };
 
     try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${refresh_tokenInterno}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await axios.post<ApiResponse>(
+        "https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${refresh_tokenInterno2}`,
+          },
+        }
+      );
 
-      if (!response.ok) throw new Error("Erro ao obter o access token");
+      if (response.data.Success && response.data.Content?.access_token) {
+        const accessToken = response.data.Content.access_token;
+        localStorage.setItem("access_token", accessToken); // Salvando o access token
 
-      const data = await response.json();
-      const accessToken = data.Content.access_token;
-
-      if (accessToken) {
-        localStorage.setItem("accessTokenMaster", accessToken);
-        enqueueSnackbar("Access Token do usuário master salvo com sucesso!", {
+        enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
           variant: "success",
         });
+
+        // Agora você pode usar o access token para outras requisições
       } else {
-        console.error("Access token não encontrado no response.");
+        enqueueSnackbar(
+          `Erro ao obter o token: ${
+            response.data.Message || "Erro desconhecido."
+          }`,
+          { variant: "error" }
+        );
       }
     } catch (error) {
-      console.error("Erro ao obter o access token:", error);
-      enqueueSnackbar("Erro ao obter o Access Token.", { variant: "error" });
+      console.error("Erro na requisição para obter o token:", error);
+      enqueueSnackbar(
+        "Erro ao obter o token. Verifique os dados e tente novamente.",
+        {
+          variant: "error",
+        }
+      );
     }
   };
 
@@ -239,8 +273,40 @@ const PageMenuDeAcesso: React.FC = () => {
     );
   };
 
+  const voar = keyframes`
+    0% {
+      transform: translate(0, 0) scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: translate(50vw, -20vh) scale(1.2); /* Meio do trajeto */
+      opacity: 1;
+    }
+    100% {
+      transform: translate(100vw, -50vh) scale(0.5); /* Fora da tela */
+      opacity: 0;
+    }
+  `;
+
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+      {showBird && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%", // Início no centro vertical
+            left: "0%", // Início na borda esquerda
+            width: "50px",
+            height: "50px",
+            backgroundImage: `url(${curupaco})`,
+            backgroundSize: "contain",
+            backgroundRepeat: "no-repeat",
+            animation: `${voar} 3s ease-in-out forwards`, // Aplica os keyframes
+            zIndex: 10, // Certifica-se que o passarinho está acima de outros elementos
+          }}
+        ></Box>
+      )}
+
       <Box
         sx={{
           mt: "15vh",

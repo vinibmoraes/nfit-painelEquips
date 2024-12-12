@@ -1,13 +1,20 @@
 import React, { useState } from "react";
 import { useSnackbar } from "notistack";
 import { useNavigate } from "react-router-dom";
-import { Box, Button, Container, TextField, Grid, Typography } from "@mui/material";
-import logo from "../assets/logo-roxa-nextfit.webp";
+import {
+  Box,
+  Button,
+  Container,
+  TextField,
+  Grid,
+  Typography,
+} from "@mui/material";
+import logo from "../../assets/logo-roxa-nextfit.webp";
 
-export const PageLogin = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
+const PageLogin = () => {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [code, setCode] = useState<string>("");
   const navlogintomenu = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -51,6 +58,8 @@ export const PageLogin = () => {
       console.error(error);
     }
   };
+
+  //html-CSS em MUI
 
   return (
     <Box
@@ -131,7 +140,6 @@ export const PageLogin = () => {
         </Box>
       </Container>
     </Box>
-    
   );
 };
 

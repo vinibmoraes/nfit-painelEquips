@@ -1,6 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import PageLogin from "../pages/pageLogin";
-import PageMenuDeAcesso from "../pages/pageMenuDeAcesso";
+import PageLogin from "../pages/PageLogin";
+import PageMenuDeAcesso from "../pages/PageMenuDeAcesso";
 
 export const AppRoutes = () => {
   return (

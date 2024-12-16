@@ -1,10 +1,8 @@
-interface ApiResponse {
+export interface ApiResponse {
   Content: {
-    Access_token: string;
-    Refresh_token: string;
+    access_token: string;
+    refresh_token: string;
   };
   Message: string;
   Success: boolean;
 }
-
-export default ApiResponse;

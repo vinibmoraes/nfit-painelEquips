@@ -1,4 +1,4 @@
-interface Base {
+export interface Base {
   Id: number;
   CodigoUnidade: number;
   Nome: string;
@@ -6,5 +6,3 @@ interface Base {
   Status: number;
   RazaoSocial: string;
 }
-
-export default Base;

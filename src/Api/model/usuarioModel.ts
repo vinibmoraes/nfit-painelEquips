@@ -1,12 +1,10 @@
-interface Usuario {
-  Id: number;
-  Nome: string;
-  Email: string;
-  DddFone: string;
+export interface Usuario {
+  id: number;
+  nome: string;
+  email: string;
+  dddFone: string;
   Fone: string;
-  TipoPerfil: number;
-  AcessoBloqueado: boolean;
-  Inativo: boolean;
+  tipoPerfil: number;
+  acessoBloqueado: boolean;
+  inativo: boolean;
 }
-
-export default Usuario;

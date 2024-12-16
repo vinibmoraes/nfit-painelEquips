@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Usuario from "../../Api/model/usuarioModel";
-import Base from "../../Api/model/baseModel";
-import ApiResponse from "../../Api/model/ApiResponseModel";
-import Equipamento from "../../Api/model/equipamentoModel";
+import { ApiResponse } from "../../Api/model/ApiResponseModel";
+import { Base } from "../../Api/model/baseModel";
+import { Equipamento } from "../../Api/model/equipamentoModel";
+import { Usuario } from "../../Api/model/usuarioModel";
 import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -40,8 +40,6 @@ const PageMenuDeAcesso: React.FC = () => {
   const [cadastro, setCadastro] = useState<any>(null);
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
-  // buscarBases: Realiza uma chamada à API com o email digitado pelo usuário. Processa e exibe as bases de cliente no modal se encontrar múltiplas entradas. Se houver apenas uma base encontrada, ela é automaticamente selecionada. Armazena dados da base selecionada no localStorage.
 
   const buscarBases = async () => {
     setIsSearching(true);
@@ -86,35 +84,38 @@ const PageMenuDeAcesso: React.FC = () => {
 
       setBases(basesEncontradas);
       setSearchCompleted(true); // Marca como concluído
-      setModalOpen(basesEncontradas.length > 1);
-
       if (basesEncontradas.length === 1) {
-        selecionarBase(basesEncontradas[0]);
-        setIsSearching(false);
-        localStorage.setItem("unidadeId", basesEncontradas[0].Id.toString());
-        localStorage.setItem(
-          "codigoUnidade",
-          basesEncontradas[0].CodigoUnidade.toString()
-        );
-      } else if (basesEncontradas.length > 0) {
-        setBases(basesEncontradas);
-        setModalOpen(true);
+        await handleBaseSelection(basesEncontradas[0]); // Seleciona a única base encontrada
       } else {
-        console.log("Nenhuma base encontrada.");
+        setModalOpen(true); // Abre o modal para seleção da base
       }
-      setIsSearching(false);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
+    } finally {
       setIsSearching(false);
     }
   };
 
-  //fetchEquipamentos: Realiza a requisição para a API. Manipula e armazena os dados no estado local equipamentos. Indica ao usuário através do loading se os dados ainda estão sendo carregados.
+  const handleBaseSelection = async (base: Base) => {
+    try {
+      selecionarBase(base);
+      localStorage.setItem("unidadeId", base.Id.toString());
+      localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
 
-  const fetchEquipamentos = async (baseId?: number) => {
+      // Passa o ID ou código da base, conforme esperado
+      await buscarUsuarios(base.Id); // ou base.CodigoUnidade, dependendo da definição de buscarUsuarios
+      await usuarioMaster(); // Obtém o usuário master
+      await obterAccessTokenMaster(); // Atualiza o access token
+      await fetchEquipamentos(); // Atualiza os equipamentos
+    } catch (error) {
+      console.error("Erro ao processar a seleção da base:", error);
+    }
+  };
+
+  const fetchEquipamentos = async () => {
     const accessToken = localStorage.getItem("access_token");
     if (!accessToken) {
-      console.error("Access token not found!");
+      console.error("Access token não encontrado!");
       return;
     }
 
@@ -130,7 +131,10 @@ const PageMenuDeAcesso: React.FC = () => {
         }
       );
 
+      if (!response.ok) throw new Error("Erro ao buscar equipamentos");
+
       const data = await response.json();
+
       if (data.Success) {
         setEquipamentos(
           data.Content.map((item: any) => ({
@@ -139,97 +143,74 @@ const PageMenuDeAcesso: React.FC = () => {
           }))
         );
       } else {
-        console.error("Failed to fetch equipamentos:", data.Message);
+        console.error("Erro ao buscar equipamentos:", data.Message);
       }
     } catch (error) {
-      console.error("Error fetching equipamentos:", error);
+      console.error("Erro ao buscar equipamentos:", error);
     } finally {
       setLoading(false);
     }
   };
-
   useEffect(() => {
-    if (baseSelecionada) {
-      const storedAccessToken = localStorage.getItem("access_token");
-      if (!storedAccessToken) {
-        console.error("Access token não encontrado no localStorage!");
+    const fetchEquipamentos = async () => {
+      const accessToken = localStorage.getItem("access_token");
+      if (!accessToken) {
+        console.error("Access token not found!");
         return;
       }
-      // Se o token estiver correto, faça a requisição à API
-      fetchEquipamentos(baseSelecionada.Id);
-    }
-  }, [baseSelecionada]);
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento?filter=%5B%7B%22property%22:%22Inativo%22,%22operator%22:%22equal%22,%22value%22:false,%22and%22:true%7D%5D&page=1",
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const data = await response.json();
+        if (data.Success) {
+          setEquipamentos(
+            data.Content.map((item: any) => ({
+              Descricao: item.Descricao,
+              Id: item.Id,
+            }))
+          );
+        } else {
+          console.error("Failed to fetch equipamentos:", data.Message);
+        }
+      } catch (error) {
+        console.error("Error fetching equipamentos:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEquipamentos();
+  }, []);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     buscarBases();
   };
 
-  //selecionarBase: Define a base como selecionada. Busca os usuários associados à base. Busca o "Usuário Master". Solicita um token de acesso da base.
-
-  const selecionarBase = async (base: Base) => {
-    console.log("Selecionando base:", base);
-
-    try {
-      setBaseSelecionada(base);
-      setModalOpen(false);
-      localStorage.setItem("unidadeId", base.Id.toString());
-      localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
-
-      const usuarios: Usuario[] = await buscarUsuarios(base.Id);
-      const usuarioMaster = await buscarUsuarioMaster(usuarios, base.Id);
-
-      if (!usuarioMaster || !usuarioMaster.Id) {
-        console.error(
-          "Usuário master não está definido corretamente",
-          usuarioMaster
-        );
-        return;
-      }
-
-      // Obter o token após buscar usuário master
-      await obterAccessTokenMaster(base.Id, usuarioMaster.Id);
-
-      // Buscar equipamentos após atualizar o token
-      await fetchEquipamentos(base.Id);
-    } catch (error) {
-      console.error("Erro ao selecionar a base:", error);
-    }
+  const selecionarBase = (base: Base) => {
+    setBaseSelecionada(base);
+    setModalOpen(false);
+    localStorage.setItem("unidadeId", base.Id.toString());
+    localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
+    buscarUsuarios(base.Id);
+    obterAccessTokenMaster();
   };
 
-  const buscarUsuarioMaster = async (
-    usuarios: Usuario[],
-    baseId: number
-  ): Promise<any> => {
-    if (!Array.isArray(usuarios)) {
-      console.error("A variável 'usuarios' não é um array válido", usuarios);
-      return;
-    }
-
-    const usuariosTipoPerfil1 = usuarios.filter(
-      (usuario: any) => usuario.TipoPerfil === 1
-    );
-
-    if (usuariosTipoPerfil1.length > 0) {
-      const usuarioMaster = usuariosTipoPerfil1[0];
-      localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
-      console.log("Usuário master salvo:", usuarioMaster);
-
-      setUsuarioMaster(usuarioMaster);
-      return usuarioMaster;
-    } else {
-      console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
-      setUsuarioMaster(null); // Definir como null se não encontrar um usuário
-    }
-
-    if (usuarioMaster && usuarioMaster.Id) {
-      await obterAccessTokenMaster(baseId, usuarioMaster.Id);
-    }
-  };
-
-  //buscarUsuarios: Realiza uma requisição para a API. Processa e armazena os usuários no estado usuarios.
-
-  const buscarUsuarios = async (codigoCadastro: number): Promise<any> => {
+  const buscarUsuarios = async (codigoCadastro: number) => {
     const urlUsuarios = `https://apiadm.nextfit.com.br/api/Usuario/RecuperarUsuariosCadastro?AcessoBloqueado=false&CodigoCadastro=${codigoCadastro}&Inativo=false&limit=20&page=1&sort=%5B%7B%22property%22:%22Inativo%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22TipoPerfil%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22Nome%22,%22direction%22:%22asc%22%7D%5D`;
 
     const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
@@ -248,8 +229,26 @@ const PageMenuDeAcesso: React.FC = () => {
       });
 
       if (!response.ok) throw new Error("Erro ao buscar usuários");
+
       const data = await response.json();
 
+      // Filtrar usuários do TipoPerfil 1
+      const usuariosTipoPerfil1 = data.Content.filter(
+        (usuario: any) => usuario.TipoPerfil === 1
+      );
+
+      if (usuariosTipoPerfil1.length > 0) {
+        // Armazena o primeiro usuário do TipoPerfil 1 no localStorage
+        const usuarioMaster = usuariosTipoPerfil1[0];
+        localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
+        console.log("Usuário master salvo:", usuarioMaster);
+
+        setUsuarioMaster(usuarioMaster);
+      } else {
+        console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
+      }
+
+      // Atualizar o estado com todos os usuários
       setUsuarios(
         data.Content.map((usuario: any) => ({
           nome: usuario.Nome,
@@ -263,12 +262,7 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  //obterAccessTokenMaster: Realiza uma requisição POST com dados do usuário. Manipula o token de acesso no localStorage. Notifica o usuário sobre o sucesso ou falha com enqueueSnackbar
-
-  const obterAccessTokenMaster = async (
-    codigoBase: number,
-    codigoUsuarioMaster: number
-  ): Promise<void> => {
+  const obterAccessTokenMaster = async (): Promise<void> => {
     const refresh_tokenInterno2 = localStorage.getItem("refresh_tokenInterno");
 
     if (!refresh_tokenInterno2) {
@@ -278,9 +272,14 @@ const PageMenuDeAcesso: React.FC = () => {
       return;
     }
 
+    if (!baseSelecionada?.Id) {
+      enqueueSnackbar("A base não foi encontrada.");
+      return;
+    }
+
     const payload = {
-      Codigo: codigoBase,
-      CodigoUsuario: codigoUsuarioMaster,
+      Codigo: baseSelecionada.Id,
+      CodigoUsuario: parseInt(usuarioMaster?.Id),
     };
 
     console.log(payload);
@@ -296,13 +295,15 @@ const PageMenuDeAcesso: React.FC = () => {
         }
       );
 
-      if (response.data.Success && response.data.Content?.Access_token) {
-        const accessToken = response.data.Content.Access_token;
-        localStorage.setItem("access_token", accessToken); // Atualiza o token no localStorage
+      if (response.data.Success && response.data.Content?.access_token) {
+        const accessToken = response.data.Content.access_token;
+        localStorage.setItem("access_token", accessToken); // Salvando o access token
 
         enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
           variant: "success",
         });
+
+        // Agora você pode usar o access token para outras requisições
       } else {
         enqueueSnackbar(
           `Erro ao obter o token: ${
@@ -339,11 +340,6 @@ const PageMenuDeAcesso: React.FC = () => {
       "_blank"
     );
   };
-
-  console.log(usuarios);
-  console.log(equipamentos);
-
-  //html-CSS em MUI
 
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -530,7 +526,7 @@ const PageMenuDeAcesso: React.FC = () => {
                   mb: 2,
                   "&:hover": { bgcolor: "action.hover" },
                 }}
-                onClick={async () => await selecionarBase(base)}
+                onClick={() => selecionarBase(base)}
               >
                 <Typography>
                   <strong>Unidade:</strong> {base.Nome}
@@ -560,47 +556,190 @@ const PageMenuDeAcesso: React.FC = () => {
 
       <Box
         sx={{
-          mt: 2,
-          p: 2,
-          border: "1px solid",
-          borderColor: "divider",
-          borderRadius: 2,
-          boxShadow: 1,
-          maxHeight: "40vh",
-          overflowY: "auto",
+          display: "flex",
+          justifyContent: "center", // Centraliza as tabelas no espaço disponível
+          paddingX: 2, // Margem horizontal
+          width: "100%",
+          maxWidth: "1200px", // Limita a largura máxima do conteúdo
+          margin: "0 auto", // Centraliza no container da página
         }}
       >
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Equipamentos
-        </Typography>
-        {loading ? (
-          <Typography>Carregando equipamentos...</Typography>
-        ) : equipamentos.length > 0 ? (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>
-                    <strong>Descrição</strong>
-                  </TableCell>
-                  <TableCell>
-                    <strong>ID</strong>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {equipamentos.map((equipamento) => (
-                  <TableRow key={equipamento.Id}>
-                    <TableCell>{equipamento.Descricao}</TableCell>
-                    <TableCell>{equipamento.Id}</TableCell>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 2,
+            width: "100%",
+          }}
+        >
+          {/* Tabela de Equipamentos */}
+          {equipamentos.length > 0 && (
+            <TableContainer
+              sx={{
+                flexBasis: "auto",
+                maxWidth: "35%", // Ajuste para a largura máxima
+                overflowY: "auto",
+                boxShadow: 1,
+                borderRadius: 2,
+                maxHeight: equipamentos.length > 0 ? "none" : "fit-content",
+              }}
+            >
+              <Table sx={{ minWidth: 300 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      sx={{
+                        borderRight: "1px solid",
+                        borderColor: "divider",
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "16px",
+                      }}
+                    >
+                      Equipamento(s)
+                    </TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : (
-          <Typography>Nenhum equipamento encontrado.</Typography>
-        )}
+                </TableHead>
+                <TableBody>
+                  {equipamentos.map((equipamento, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: "action.hover",
+                        },
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          borderRight: "1px solid",
+                          borderColor: "divider",
+                          padding: "12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {equipamento.Descricao}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+
+          {/* Tabela de Usuários */}
+          {usuarios.length > 0 && (
+            <TableContainer
+              component={Paper}
+              sx={{
+                flexBasis: "65%",
+                maxWidth: "65%",
+                maxHeight: "50vh",
+                overflowY: "auto",
+                boxShadow: 1,
+                borderRadius: 2,
+              }}
+            >
+              <Table sx={{ minWidth: 300 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell
+                      sx={{
+                        borderRight: "1px solid",
+                        borderColor: "divider",
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
+                        padding: "12px",
+                        textAlign: "left",
+                        fontSize: "16px",
+                      }}
+                    >
+                      Usuário
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        backgroundColor: "#f5f5f5",
+                        fontWeight: "bold",
+                        alignItems: "center",
+                        padding: "12px",
+                        fontSize: "16px",
+                        textAlign: "left",
+                      }}
+                    >
+                      E-mail
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {usuarios.map((usuario, index) => (
+                    <TableRow
+                      key={index}
+                      sx={{
+                        "&:hover": {
+                          backgroundColor: "action.hover",
+                        },
+                      }}
+                    >
+                      <TableCell
+                        sx={{
+                          borderRight: "1px solid",
+                          borderColor: "divider",
+                          padding: "12px",
+                          fontSize: "14px",
+                        }}
+                      >
+                        {usuario.nome}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          padding: "12px",
+                          fontSize: "14px",
+                          borderColor: "divider",
+                        }}
+                      >
+                        <span>{usuario.email}</span>
+                        <Box
+                          sx={{ display: "flex", gap: 1, alignItems: "center" }}
+                        >
+                          <IconButton
+                            onClick={() => copiarEmail(usuario.email)}
+                            sx={{
+                              color: "#8323A0",
+                              "&:hover": {
+                                color: "#6C1E9B",
+                              },
+                            }}
+                          >
+                            <FileCopyIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() =>
+                              copiarTelefone(usuario.dddFone, usuario.Fone)
+                            }
+                            sx={{
+                              color: "#8323A0",
+                              "&:hover": {
+                                color: "#6C1E9B",
+                              },
+                            }}
+                          >
+                            <PhoneIcon />
+                          </IconButton>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </Box>
       </Box>
 
       {/* Ícone de Mapa no canto inferior esquerdo */}

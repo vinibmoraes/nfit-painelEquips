@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { ApiResponse } from "../../Api/model/ApiResponseModel";
-import { Base } from "../../Api/model/baseModel";
+import { Cadastro as Cadastro } from "../../Api/model/baseModel";
 import { Equipamento } from "../../Api/model/equipamentoModel";
 import { Usuario } from "../../Api/model/usuarioModel";
 import EmailIcon from "@mui/icons-material/Email";
@@ -27,12 +27,16 @@ import {
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
+import { EVerboHttp } from "../../Api/model/EVerboHttp";
 
 const PageMenuDeAcesso: React.FC = () => {
+  const [refreshToken] = useState<any>(
+    localStorage.getItem("refresh_tokenInterno")
+  );
   const [email, setEmail] = useState<string>("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [bases, setBases] = useState<Base[]>([]);
-  const [baseSelecionada, setBaseSelecionada] = useState<Base | null>(null);
+  const [bases, setBases] = useState<Cadastro[]>([]);
+  const [baseSelecionada, setBaseSelecionada] = useState<Cadastro | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
@@ -41,54 +45,44 @@ const PageMenuDeAcesso: React.FC = () => {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
+  const getOptions = (verbo: EVerboHttp) => {
+    return {
+      method: verbo,
+      headers: {
+        Authorization: `Bearer ${refreshToken}`,
+      },
+    };
+  };
+
   const buscarBases = async () => {
     setIsSearching(true);
     const emailClienteSemEspaco = email.trim();
     const urlBuscaCliente = `https://apiadm.nextfit.com.br/api/Cadastro/ListarView?Ativacao=null&DataCancelamentoFinal=null&DataCancelamentoInicial=null&DataInicioFinal=null&DataInicioInicial=null&DataUltimoAcessoFinal=null&DataUltimoAcessoInicial=null&EmAtencao=null&PesquisaGeral=${emailClienteSemEspaco}&RealizouTreinamento=null&Status=%5B1,3,2,5,6%5D&Trial=null&Vip=null&page=1&sort=%5B%7B%22property%22:%22DataCriacao%22,%22direction%22:%22desc%22%7D,%7B%22property%22:%22Id%22,%22direction%22:%22desc%22%7D%5D`;
 
-    const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
-
-    if (!refresh_tokenInterno) {
-      console.error("Token não encontrado no localStorage");
-      setIsSearching(false);
-      return;
-    }
-
     try {
-      const response = await fetch(urlBuscaCliente, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${refresh_tokenInterno}`,
-        },
-      });
+      const response = await fetch(urlBuscaCliente, getOptions(EVerboHttp.GET));
 
-      if (!response.ok) throw new Error("Erro ao buscar bases");
+      if (!response.ok) {
+        throw new Error("Erro ao buscar bases");
+      }
 
-      const data = await response.json();
-      const basesEncontradas: Base[] = data.Content.map((base: Base) => ({
-        Id: base.Id,
-        CodigoUnidade: base.CodigoUnidade,
-        Nome: base.Nome,
-        AlunosAtivos: base.AlunosAtivos,
-        Status: base.Status,
-        RazaoSocial: base.RazaoSocial,
-      }));
+      const apiResponse: ApiResponse<Cadastro[]> = await response.json();
+      const bases = apiResponse.Content;
 
-      if (basesEncontradas.length === 0) {
+      if (apiResponse.Total === 0) {
         enqueueSnackbar("Nenhuma base encontrada.", {
           variant: "info",
         });
-        setIsSearching(false); // Finaliza a busca
+        setIsSearching(false);
         return;
       }
 
-      setBases(basesEncontradas);
-      setSearchCompleted(true); // Marca como concluído
-      if (basesEncontradas.length === 1) {
-        await handleBaseSelection(basesEncontradas[0]); // Seleciona a única base encontrada
-      } else {
-        setModalOpen(true); // Abre o modal para seleção da base
-      }
+      setBases(bases);
+      setSearchCompleted(true);
+
+      bases.length === 1
+        ? await handleSelecionarBase(bases[0])
+        : setModalOpen(true);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
     } finally {
@@ -96,14 +90,14 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const handleBaseSelection = async (base: Base) => {
+  const handleSelecionarBase = async (cadastro: Cadastro) => {
     try {
-      selecionarBase(base);
-      localStorage.setItem("unidadeId", base.Id.toString());
-      localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
+      selecionarCadastro(cadastro);
+      localStorage.setItem("codigoCadastro", cadastro.Id.toString());
+      localStorage.setItem("codigoUnidade", cadastro.CodigoUnidade.toString());
 
       // Passa o ID ou código da base, conforme esperado
-      await buscarUsuarios(base.Id); // ou base.CodigoUnidade, dependendo da definição de buscarUsuarios
+      await buscarUsuarios(cadastro.Id); // ou base.CodigoUnidade, dependendo da definição de buscarUsuarios
       await usuarioMaster(); // Obtém o usuário master
       await obterAccessTokenMaster(); // Atualiza o access token
       await fetchEquipamentos(); // Atualiza os equipamentos
@@ -201,7 +195,7 @@ const PageMenuDeAcesso: React.FC = () => {
     buscarBases();
   };
 
-  const selecionarBase = (base: Base) => {
+  const selecionarCadastro = (base: Cadastro) => {
     setBaseSelecionada(base);
     setModalOpen(false);
     localStorage.setItem("unidadeId", base.Id.toString());
@@ -221,42 +215,27 @@ const PageMenuDeAcesso: React.FC = () => {
     }
 
     try {
-      const response = await fetch(urlUsuarios, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${refresh_tokenInterno}`,
-        },
-      });
+      const response = await fetch(urlUsuarios, getOptions(EVerboHttp.GET));
 
-      if (!response.ok) throw new Error("Erro ao buscar usuários");
-
-      const data = await response.json();
-
-      // Filtrar usuários do TipoPerfil 1
-      const usuariosTipoPerfil1 = data.Content.filter(
-        (usuario: any) => usuario.TipoPerfil === 1
-      );
-
-      if (usuariosTipoPerfil1.length > 0) {
-        // Armazena o primeiro usuário do TipoPerfil 1 no localStorage
-        const usuarioMaster = usuariosTipoPerfil1[0];
-        localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
-        console.log("Usuário master salvo:", usuarioMaster);
-
-        setUsuarioMaster(usuarioMaster);
-      } else {
-        console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
+      if (!response.ok) {
+        throw new Error("Erro ao buscar usuários");
       }
 
-      // Atualizar o estado com todos os usuários
-      setUsuarios(
-        data.Content.map((usuario: any) => ({
-          nome: usuario.Nome,
-          email: usuario.Email,
-          dddFone: usuario.DddFone,
-          fone: usuario.Fone,
-        }))
+      const apiResponse: ApiResponse<Usuario[]> = await response.json();
+      const usuarios = apiResponse.Content;
+      setUsuarios(usuarios);
+
+      const usuarioMaster = usuarios.find(
+        (usuario) => usuario.TipoPerfil === 1
       );
+
+      if (!usuarioMaster) {
+        console.warn("Nenhum usuário com TipoPerfil 1 encontrado.");
+        return;
+      }
+
+      localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
+      setUsuarioMaster(usuarioMaster);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
     }
@@ -526,7 +505,7 @@ const PageMenuDeAcesso: React.FC = () => {
                   mb: 2,
                   "&:hover": { bgcolor: "action.hover" },
                 }}
-                onClick={() => selecionarBase(base)}
+                onClick={() => selecionarCadastro(base)}
               >
                 <Typography>
                   <strong>Unidade:</strong> {base.Nome}

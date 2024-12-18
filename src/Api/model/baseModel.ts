@@ -1,4 +1,4 @@
-export interface Base {
+export interface Cadastro {
   Id: number;
   CodigoUnidade: number;
   Nome: string;

@@ -1,10 +1,10 @@
 export interface Usuario {
-  id: number;
-  nome: string;
-  email: string;
-  dddFone: string;
+  Id: number;
+  Nome: string;
+  Email: string;
+  DddFone: string;
   Fone: string;
-  tipoPerfil: number;
-  acessoBloqueado: boolean;
-  inativo: boolean;
+  TipoPerfil: number;
+  AcessoBloqueado: boolean;
+  Inativo: boolean;
 }

@@ -1,8 +1,6 @@
-export interface ApiResponse {
-  Content: {
-    access_token: string;
-    refresh_token: string;
-  };
+export interface ApiResponse<T> {
+  Content: T;
   Message: string;
   Success: boolean;
+  Total?: number;
 }

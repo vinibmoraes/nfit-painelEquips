@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { ApiResponse } from "../../Api/model/ApiResponseModel";
-import { Cadastro as Cadastro } from "../../Api/model/baseModel";
-import { Equipamento } from "../../Api/model/equipamentoModel";
-import { Usuario } from "../../Api/model/usuarioModel";
+import { LoginInternoDto, RespostaBaseApi } from "../../Api/Utils/resposta-base-api";
+import { Cadastro as Cadastro } from "../../Api/model/Cadastro";
+import { Equipamento } from "../../Api/model/Equipamento";
+import { Usuario } from "../../Api/model/Usuario";
 import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
@@ -27,7 +27,11 @@ import {
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
-import { EVerboHttp } from "../../Api/model/EVerboHttp";
+import { EVerboHttp } from "../../Api/Enums/EVerboHttp";
+import { LocalStorageHelper } from "../../shared/helpers/local-storage-helper";
+import { keyCodigoCadastro, keyCodigoUnidade, keyRefreshToken, keyUnidadeSelecionadaAuthToken, keyUsuarioMaster } from "../../shared/keys/local-storage-keys";
+import { getOptions } from "../../Api/Utils/get-options";
+import { get } from "http";
 
 const PageMenuDeAcesso: React.FC = () => {
   const [refreshToken] = useState<any>(
@@ -36,7 +40,7 @@ const PageMenuDeAcesso: React.FC = () => {
   const [email, setEmail] = useState<string>("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [bases, setBases] = useState<Cadastro[]>([]);
-  const [baseSelecionada, setBaseSelecionada] = useState<Cadastro | null>(null);
+  const [cadastroSelecionado, setCadastroSelecionado] = useState<Cadastro | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
@@ -45,16 +49,7 @@ const PageMenuDeAcesso: React.FC = () => {
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  const getOptions = (verbo: EVerboHttp) => {
-    return {
-      method: verbo,
-      headers: {
-        Authorization: `Bearer ${refreshToken}`,
-      },
-    };
-  };
-
-  const buscarBases = async () => {
+  const buscarCadastros = async () => {
     setIsSearching(true);
     const emailClienteSemEspaco = email.trim();
     const urlBuscaCliente = `https://apiadm.nextfit.com.br/api/Cadastro/ListarView?Ativacao=null&DataCancelamentoFinal=null&DataCancelamentoInicial=null&DataInicioFinal=null&DataInicioInicial=null&DataUltimoAcessoFinal=null&DataUltimoAcessoInicial=null&EmAtencao=null&PesquisaGeral=${emailClienteSemEspaco}&RealizouTreinamento=null&Status=%5B1,3,2,5,6%5D&Trial=null&Vip=null&page=1&sort=%5B%7B%22property%22:%22DataCriacao%22,%22direction%22:%22desc%22%7D,%7B%22property%22:%22Id%22,%22direction%22:%22desc%22%7D%5D`;
@@ -66,8 +61,8 @@ const PageMenuDeAcesso: React.FC = () => {
         throw new Error("Erro ao buscar bases");
       }
 
-      const apiResponse: ApiResponse<Cadastro[]> = await response.json();
-      const bases = apiResponse.Content;
+      const apiResponse: RespostaBaseApi<Cadastro[]> = await response.json();
+      const cadastros = apiResponse.Content;
 
       if (apiResponse.Total === 0) {
         enqueueSnackbar("Nenhuma base encontrada.", {
@@ -77,11 +72,11 @@ const PageMenuDeAcesso: React.FC = () => {
         return;
       }
 
-      setBases(bases);
+      setBases(cadastros);
       setSearchCompleted(true);
 
-      bases.length === 1
-        ? await handleSelecionarBase(bases[0])
+      cadastros.length === 1
+        ? await handleSelecionarCadastro(bases[0])
         : setModalOpen(true);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
@@ -90,55 +85,26 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const handleSelecionarBase = async (cadastro: Cadastro) => {
-    try {
-      selecionarCadastro(cadastro);
-      localStorage.setItem("codigoCadastro", cadastro.Id.toString());
-      localStorage.setItem("codigoUnidade", cadastro.CodigoUnidade.toString());
 
-      // Passa o ID ou código da base, conforme esperado
-      await buscarUsuarios(cadastro.Id); // ou base.CodigoUnidade, dependendo da definição de buscarUsuarios
-      await usuarioMaster(); // Obtém o usuário master
-      await obterAccessTokenMaster(); // Atualiza o access token
-      await fetchEquipamentos(); // Atualiza os equipamentos
-    } catch (error) {
-      console.error("Erro ao processar a seleção da base:", error);
-    }
-  };
 
-  const fetchEquipamentos = async () => {
-    const accessToken = localStorage.getItem("access_token");
-    if (!accessToken) {
-      console.error("Access token não encontrado!");
-      return;
-    }
+  const buscarEquipamentosCadastroSelecionado = async () => {
+    const authToken = LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
     try {
       const response = await fetch(
         "https://api.nextfit.com.br/api/equipamento?filter=%5B%7B%22property%22:%22Inativo%22,%22operator%22:%22equal%22,%22value%22:false,%22and%22:true%7D%5D&page=1",
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            "Content-Type": "application/json",
-          },
-        }
+        getOptions(EVerboHttp.GET, undefined, authToken)
       );
 
-      if (!response.ok) throw new Error("Erro ao buscar equipamentos");
-
-      const data = await response.json();
-
-      if (data.Success) {
-        setEquipamentos(
-          data.Content.map((item: any) => ({
-            Descricao: item.Descricao,
-            Id: item.Id,
-          }))
-        );
-      } else {
-        console.error("Erro ao buscar equipamentos:", data.Message);
+      if (!response.ok) {
+        throw new Error("Erro ao buscar equipamentos");
       }
+
+      const resposta: RespostaBaseApi<Equipamento[]> = await response.json();
+
+      const equipamentos = resposta.Content;
+      setEquipamentos(equipamentos);
+
     } catch (error) {
       console.error("Erro ao buscar equipamentos:", error);
     } finally {
@@ -192,36 +158,39 @@ const PageMenuDeAcesso: React.FC = () => {
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    buscarBases();
+    buscarCadastros();
   };
 
-  const selecionarCadastro = (base: Cadastro) => {
-    setBaseSelecionada(base);
+  const handleSelecionarCadastro = async (cadastro: Cadastro) => {
+    try {
+      selecionarCadastro(cadastro);
+      LocalStorageHelper.setItem(keyCodigoCadastro, cadastro.Id);
+      LocalStorageHelper.setItem(keyCodigoUnidade, cadastro.CodigoUnidade);
+
+      await buscarUsuarios(cadastro.Id);
+      await buscarAuthTokenCadastroSelecionado();
+      await buscarEquipamentosCadastroSelecionado();
+
+    } catch (error) {
+      console.error("Erro ao processar a seleção da base:", error);
+    }
+  };
+
+  const selecionarCadastro = (cadastro: Cadastro) => {
+    setCadastroSelecionado(cadastro);
     setModalOpen(false);
-    localStorage.setItem("unidadeId", base.Id.toString());
-    localStorage.setItem("codigoUnidade", base.CodigoUnidade.toString());
-    buscarUsuarios(base.Id);
-    obterAccessTokenMaster();
   };
 
   const buscarUsuarios = async (codigoCadastro: number) => {
-    const urlUsuarios = `https://apiadm.nextfit.com.br/api/Usuario/RecuperarUsuariosCadastro?AcessoBloqueado=false&CodigoCadastro=${codigoCadastro}&Inativo=false&limit=20&page=1&sort=%5B%7B%22property%22:%22Inativo%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22TipoPerfil%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22Nome%22,%22direction%22:%22asc%22%7D%5D`;
-
-    const refresh_tokenInterno = localStorage.getItem("refresh_tokenInterno");
-
-    if (!refresh_tokenInterno) {
-      console.error("Token não encontrado no localStorage");
-      return;
-    }
-
+    const url = `https://apiadm.nextfit.com.br/api/Usuario/RecuperarUsuariosCadastro?AcessoBloqueado=false&CodigoCadastro=${codigoCadastro}&Inativo=false&limit=20&page=1&sort=%5B%7B%22property%22:%22Inativo%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22TipoPerfil%22,%22direction%22:%22asc%22%7D,%7B%22property%22:%22Nome%22,%22direction%22:%22asc%22%7D%5D`;
     try {
-      const response = await fetch(urlUsuarios, getOptions(EVerboHttp.GET));
+      const response = await fetch(url, getOptions(EVerboHttp.GET));
 
       if (!response.ok) {
         throw new Error("Erro ao buscar usuários");
       }
 
-      const apiResponse: ApiResponse<Usuario[]> = await response.json();
+      const apiResponse: RespostaBaseApi<Usuario[]> = await response.json();
       const usuarios = apiResponse.Content;
       setUsuarios(usuarios);
 
@@ -234,65 +203,43 @@ const PageMenuDeAcesso: React.FC = () => {
         return;
       }
 
-      localStorage.setItem("IdUsuarioMaster", usuarioMaster.Id.toString());
+      LocalStorageHelper.setItem<Usuario>(keyUsuarioMaster, usuarioMaster);
       setUsuarioMaster(usuarioMaster);
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
     }
   };
 
-  const obterAccessTokenMaster = async (): Promise<void> => {
-    const refresh_tokenInterno2 = localStorage.getItem("refresh_tokenInterno");
-
-    if (!refresh_tokenInterno2) {
-      enqueueSnackbar("Erro: Dados incompletos para obter o token.", {
-        variant: "error",
-      });
-      return;
-    }
-
-    if (!baseSelecionada?.Id) {
+  const buscarAuthTokenCadastroSelecionado = async (): Promise<void> => {
+    if (!cadastroSelecionado?.Id) {
       enqueueSnackbar("A base não foi encontrada.");
       return;
     }
 
     const payload = {
-      Codigo: baseSelecionada.Id,
+      Codigo: cadastroSelecionado.Id,
       CodigoUsuario: parseInt(usuarioMaster?.Id),
     };
 
-    console.log(payload);
-
     try {
-      const response = await axios.post<ApiResponse>(
-        "https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario",
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${refresh_tokenInterno2}`,
-          },
-        }
-      );
+      const url = "https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario";
+      const response = await fetch(url, getOptions(EVerboHttp.POST, payload));
 
-      if (response.data.Success && response.data.Content?.access_token) {
-        const accessToken = response.data.Content.access_token;
-        localStorage.setItem("access_token", accessToken); // Salvando o access token
-
-        enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
-          variant: "success",
-        });
-
-        // Agora você pode usar o access token para outras requisições
-      } else {
-        enqueueSnackbar(
-          `Erro ao obter o token: ${
-            response.data.Message || "Erro desconhecido."
-          }`,
-          { variant: "error" }
-        );
+      if (!response.ok) {
+        throw new Error("Erro ao buscar token de acesso");
       }
+
+      const resposta: RespostaBaseApi<LoginInternoDto> = await response.json();
+      const unidadeAuthToken = resposta.Content.access_token;
+
+
+      LocalStorageHelper.setItem(keyUnidadeSelecionadaAuthToken, unidadeAuthToken);
+
+      enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
+        variant: "success",
+      });
+
     } catch (error) {
-      console.error("Erro na requisição para obter o token:", error);
       enqueueSnackbar(
         "Erro ao obter o token. Verifique os dados e tente novamente.",
         {
@@ -331,13 +278,13 @@ const PageMenuDeAcesso: React.FC = () => {
           fontSize: "1.2rem",
           mb: "30px",
           color:
-            baseSelecionada?.Status === 1
+            cadastroSelecionado?.Status === 1
               ? "rgb(76,175,80)" // - ATIVO
-              : baseSelecionada?.Status === 2
-              ? "rgb(225,171,64)" // - SOMENTE LEITURA
-              : baseSelecionada?.Status === 3
-              ? "rgb(244,67,54)" // - BLOQUEADO
-              : "inherit", // Cor padrão
+              : cadastroSelecionado?.Status === 2
+                ? "rgb(225,171,64)" // - SOMENTE LEITURA
+                : cadastroSelecionado?.Status === 3
+                  ? "rgb(244,67,54)" // - BLOQUEADO
+                  : "inherit", // Cor padrão
         }}
       >
         <Typography
@@ -348,31 +295,31 @@ const PageMenuDeAcesso: React.FC = () => {
             justifyContent: "center",
           }}
         >
-          {baseSelecionada?.RazaoSocial}{" "}
-          {baseSelecionada?.Status === 1
+          {cadastroSelecionado?.RazaoSocial}{" "}
+          {cadastroSelecionado?.Status === 1
             ? "- ATIVO"
-            : baseSelecionada?.Status === 2
-            ? "- SOMENTE LEITURA"
-            : baseSelecionada?.Status === 3
-            ? "- BLOQUEADO"
-            : ""}
-          {[1, 2, 3].includes(baseSelecionada?.Status ?? -1) && (
+            : cadastroSelecionado?.Status === 2
+              ? "- SOMENTE LEITURA"
+              : cadastroSelecionado?.Status === 3
+                ? "- BLOQUEADO"
+                : ""}
+          {[1, 2, 3].includes(cadastroSelecionado?.Status ?? -1) && (
             <IconButton
               onClick={() =>
                 window.open(
-                  `https://adm.nextfit.com.br/cliente/${baseSelecionada?.Id}/cliente-dashboard`,
+                  `https://adm.nextfit.com.br/cliente/${cadastroSelecionado?.Id}/cliente-dashboard`,
                   "_blank"
                 )
               }
               sx={{
                 color:
-                  baseSelecionada?.Status === 1
+                  cadastroSelecionado?.Status === 1
                     ? "rgb(76,175,80)" // Cor do botão ATIVO
-                    : baseSelecionada?.Status === 2
-                    ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
-                    : baseSelecionada?.Status === 3
-                    ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
-                    : "",
+                    : cadastroSelecionado?.Status === 2
+                      ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
+                      : cadastroSelecionado?.Status === 3
+                        ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
+                        : "",
               }}
             >
               <OpenInNewIcon />
@@ -381,7 +328,7 @@ const PageMenuDeAcesso: React.FC = () => {
         </Typography>
       </Box>
 
-      {baseSelecionada && usuarios.length > 0 && (
+      {cadastroSelecionado && usuarios.length > 0 && (
         <Box
           sx={{
             display: "flex",
@@ -670,7 +617,7 @@ const PageMenuDeAcesso: React.FC = () => {
                           fontSize: "14px",
                         }}
                       >
-                        {usuario.nome}
+                        {usuario.Nome}
                       </TableCell>
                       <TableCell
                         sx={{
@@ -682,12 +629,12 @@ const PageMenuDeAcesso: React.FC = () => {
                           borderColor: "divider",
                         }}
                       >
-                        <span>{usuario.email}</span>
+                        <span>{usuario.Email}</span>
                         <Box
                           sx={{ display: "flex", gap: 1, alignItems: "center" }}
                         >
                           <IconButton
-                            onClick={() => copiarEmail(usuario.email)}
+                            onClick={() => copiarEmail(usuario.Email)}
                             sx={{
                               color: "#8323A0",
                               "&:hover": {
@@ -699,7 +646,7 @@ const PageMenuDeAcesso: React.FC = () => {
                           </IconButton>
                           <IconButton
                             onClick={() =>
-                              copiarTelefone(usuario.dddFone, usuario.Fone)
+                              copiarTelefone(usuario.DddFone, usuario.Fone)
                             }
                             sx={{
                               color: "#8323A0",

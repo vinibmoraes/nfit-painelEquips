@@ -161,6 +161,7 @@ const PageMenuDeAcesso: React.FC = () => {
     buscarCadastros();
   };
 
+  //TODO: analisar se métodos devem utilizar o cadastro.Id como parâmetro
   const handleSelecionarCadastro = async (cadastro: Cadastro) => {
     try {
       selecionarCadastro(cadastro);

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { LoginInternoDto, RespostaBaseApi } from "../../Api/Utils/resposta-base-api";
+import {
+  LoginInternoDto,
+  RespostaBaseApi,
+} from "../../Api/Utils/resposta-base-api";
 import { Cadastro as Cadastro } from "../../Api/model/Cadastro";
 import { Equipamento } from "../../Api/model/Equipamento";
 import { Usuario } from "../../Api/model/Usuario";
@@ -29,18 +32,23 @@ import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
 import { EVerboHttp } from "../../Api/Enums/EVerboHttp";
 import { LocalStorageHelper } from "../../shared/helpers/local-storage-helper";
-import { keyCodigoCadastro, keyCodigoUnidade, keyRefreshToken, keyUnidadeSelecionadaAuthToken, keyUsuarioMaster } from "../../shared/keys/local-storage-keys";
+import {
+  keyCodigoCadastro,
+  keyCodigoUnidade,
+  keyRefreshToken,
+  keyUnidadeSelecionadaAuthToken,
+  keyUsuarioMaster,
+} from "../../shared/keys/local-storage-keys";
 import { getOptions } from "../../Api/Utils/get-options";
 import { get } from "http";
+import Footer from "./footer";
 
 const PageMenuDeAcesso: React.FC = () => {
-  const [refreshToken] = useState<any>(
-    localStorage.getItem("refresh_tokenInterno")
-  );
   const [email, setEmail] = useState<string>("");
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [bases, setBases] = useState<Cadastro[]>([]);
-  const [cadastroSelecionado, setCadastroSelecionado] = useState<Cadastro | null>(null);
+  const [cadastroSelecionado, setCadastroSelecionado] =
+    useState<Cadastro | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchCompleted, setSearchCompleted] = useState<boolean>(false);
@@ -85,10 +93,9 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-
-
   const buscarEquipamentosCadastroSelecionado = async () => {
-    const authToken = LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
     try {
       const response = await fetch(
@@ -104,7 +111,6 @@ const PageMenuDeAcesso: React.FC = () => {
 
       const equipamentos = resposta.Content;
       setEquipamentos(equipamentos);
-
     } catch (error) {
       console.error("Erro ao buscar equipamentos:", error);
     } finally {
@@ -113,7 +119,9 @@ const PageMenuDeAcesso: React.FC = () => {
   };
   useEffect(() => {
     const fetchEquipamentos = async () => {
-      const accessToken = localStorage.getItem("access_token");
+      const accessToken = LocalStorageHelper.getItem(
+        keyUnidadeSelecionadaAuthToken
+      );
       if (!accessToken) {
         console.error("Access token not found!");
         return;
@@ -152,10 +160,6 @@ const PageMenuDeAcesso: React.FC = () => {
     fetchEquipamentos();
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     buscarCadastros();
@@ -164,21 +168,21 @@ const PageMenuDeAcesso: React.FC = () => {
   //TODO: analisar se métodos devem utilizar o cadastro.Id como parâmetro
   const handleSelecionarCadastro = async (cadastro: Cadastro) => {
     try {
-      selecionarCadastro(cadastro);
+      setCadastroSelecionado(cadastro);
       LocalStorageHelper.setItem(keyCodigoCadastro, cadastro.Id);
       LocalStorageHelper.setItem(keyCodigoUnidade, cadastro.CodigoUnidade);
 
       await buscarUsuarios(cadastro.Id);
-      await buscarAuthTokenCadastroSelecionado();
+      await buscarAuthTokenCadastroSelecionado(cadastro);
       await buscarEquipamentosCadastroSelecionado();
-
     } catch (error) {
       console.error("Erro ao processar a seleção da base:", error);
     }
   };
 
-  const selecionarCadastro = (cadastro: Cadastro) => {
+  const selecionarCadastro = async (cadastro: Cadastro) => {
     setCadastroSelecionado(cadastro);
+    await handleSelecionarCadastro(cadastro);
     setModalOpen(false);
   };
 
@@ -211,19 +215,25 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const buscarAuthTokenCadastroSelecionado = async (): Promise<void> => {
-    if (!cadastroSelecionado?.Id) {
+  const buscarAuthTokenCadastroSelecionado = async (
+    cadastro: Cadastro
+  ): Promise<void> => {
+    if (!cadastro?.Id) {
       enqueueSnackbar("A base não foi encontrada.");
       return;
     }
 
+    var usuarioLocalStorage: Usuario | null =
+      LocalStorageHelper.getItem(keyUsuarioMaster);
+
     const payload = {
-      Codigo: cadastroSelecionado.Id,
-      CodigoUsuario: parseInt(usuarioMaster?.Id),
+      Codigo: cadastro.Id,
+      CodigoUsuario: usuarioLocalStorage?.Id,
     };
 
     try {
-      const url = "https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario";
+      const url =
+        "https://apiadm.nextfit.com.br/api/Cadastro/AcessarPorUsuario";
       const response = await fetch(url, getOptions(EVerboHttp.POST, payload));
 
       if (!response.ok) {
@@ -233,13 +243,14 @@ const PageMenuDeAcesso: React.FC = () => {
       const resposta: RespostaBaseApi<LoginInternoDto> = await response.json();
       const unidadeAuthToken = resposta.Content.access_token;
 
-
-      LocalStorageHelper.setItem(keyUnidadeSelecionadaAuthToken, unidadeAuthToken);
+      LocalStorageHelper.setItem(
+        keyUnidadeSelecionadaAuthToken,
+        unidadeAuthToken
+      );
 
       enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
         variant: "success",
       });
-
     } catch (error) {
       enqueueSnackbar(
         "Erro ao obter o token. Verifique os dados e tente novamente.",
@@ -261,13 +272,6 @@ const PageMenuDeAcesso: React.FC = () => {
     enqueueSnackbar("Telefone copiado!", { variant: "info" });
   };
 
-  const handleMapClick = () => {
-    window.open(
-      "https://www.google.com.br/maps/d/edit?mid=1eyliVZGdAupULChAry8ZDpS_UCDNAKU&ll=-9.824164549175668%2C-49.41394982406761&z=4",
-      "_blank"
-    );
-  };
-
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Box
@@ -282,10 +286,10 @@ const PageMenuDeAcesso: React.FC = () => {
             cadastroSelecionado?.Status === 1
               ? "rgb(76,175,80)" // - ATIVO
               : cadastroSelecionado?.Status === 2
-                ? "rgb(225,171,64)" // - SOMENTE LEITURA
-                : cadastroSelecionado?.Status === 3
-                  ? "rgb(244,67,54)" // - BLOQUEADO
-                  : "inherit", // Cor padrão
+              ? "rgb(225,171,64)" // - SOMENTE LEITURA
+              : cadastroSelecionado?.Status === 3
+              ? "rgb(244,67,54)" // - BLOQUEADO
+              : "inherit", // Cor padrão
         }}
       >
         <Typography
@@ -300,10 +304,10 @@ const PageMenuDeAcesso: React.FC = () => {
           {cadastroSelecionado?.Status === 1
             ? "- ATIVO"
             : cadastroSelecionado?.Status === 2
-              ? "- SOMENTE LEITURA"
-              : cadastroSelecionado?.Status === 3
-                ? "- BLOQUEADO"
-                : ""}
+            ? "- SOMENTE LEITURA"
+            : cadastroSelecionado?.Status === 3
+            ? "- BLOQUEADO"
+            : ""}
           {[1, 2, 3].includes(cadastroSelecionado?.Status ?? -1) && (
             <IconButton
               onClick={() =>
@@ -317,10 +321,10 @@ const PageMenuDeAcesso: React.FC = () => {
                   cadastroSelecionado?.Status === 1
                     ? "rgb(76,175,80)" // Cor do botão ATIVO
                     : cadastroSelecionado?.Status === 2
-                      ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
-                      : cadastroSelecionado?.Status === 3
-                        ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
-                        : "",
+                    ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
+                    : cadastroSelecionado?.Status === 3
+                    ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
+                    : "",
               }}
             >
               <OpenInNewIcon />
@@ -669,31 +673,7 @@ const PageMenuDeAcesso: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Ícone de Mapa no canto inferior esquerdo */}
-      <Box
-        sx={{
-          position: "fixed", // Fixa a posição
-          bottom: "16px", // Distância do fundo da tela
-          left: "16px", // Distância da lateral esquerda
-          zIndex: 9999, // Garante que o ícone fique acima de outros elementos
-        }}
-      >
-        <Tooltip title="Ver Mapa de parceiros">
-          <IconButton
-            onClick={handleMapClick} // Função chamada ao clicar no ícone
-            sx={{
-              backgroundColor: "#ffffff", // Cor de fundo do ícone
-              borderRadius: "50%", // Faz o ícone ficar arredondado
-              boxShadow: 3, // Adiciona uma sombra para destacar o ícone
-              "&:hover": {
-                backgroundColor: "#e0e0e0", // Efeito de hover
-              },
-            }}
-          >
-            <MapIcon sx={{ color: "#1976d2" }} /> {/* Cor do ícone */}
-          </IconButton>
-        </Tooltip>
-      </Box>
+      <Footer />
     </Box>
   );
 };

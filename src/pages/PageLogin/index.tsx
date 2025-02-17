@@ -10,6 +10,8 @@ import {
   Typography,
 } from "@mui/material";
 import logo from "../../assets/logo-roxa-nextfit.webp";
+import { LocalStorageHelper } from "../../shared/helpers/local-storage-helper";
+import { keyRefreshToken } from "../../shared/keys/local-storage-keys";
 
 const PageLogin = () => {
   const [email, setEmail] = useState<string>("");
@@ -41,10 +43,10 @@ const PageLogin = () => {
       }
 
       if (responseLogin.ok && responseData.refresh_token) {
-        const refresh_tokenInterno = responseData.refresh_token;
+        const refreshTokenInterno = responseData.refresh_token;
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 5);
-        localStorage.setItem("refresh_tokenInterno", refresh_tokenInterno);
+        LocalStorageHelper.setItem(keyRefreshToken, refreshTokenInterno);
         localStorage.setItem("expires_at", expiresAt.toISOString());
         enqueueSnackbar("Login bem-sucedido!", { variant: "success" });
         setTimeout(() => navlogintomenu("/pageMenuDeAcesso"), 1000);

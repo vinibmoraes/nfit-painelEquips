@@ -8,7 +8,11 @@ type RequestOptions = {
   body?: string;
 };
 
-const getOptions = (verbo: EVerboHttp, body?: unknown, refreshToken?: string): RequestOptions => {
+const getOptions = (
+  verbo: EVerboHttp,
+  body?: unknown,
+  refreshToken?: string
+): RequestOptions => {
   if (!refreshToken) {
     refreshToken =
       LocalStorageHelper.getItem<string>(keyRefreshToken) ??

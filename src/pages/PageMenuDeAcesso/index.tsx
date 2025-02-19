@@ -27,6 +27,7 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Skeleton,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
@@ -83,9 +84,12 @@ const PageMenuDeAcesso: React.FC = () => {
       setBases(cadastros);
       setSearchCompleted(true);
 
-      cadastros.length === 1
-        ? await handleSelecionarCadastro(bases[0])
-        : setModalOpen(true);
+      if (cadastros.length === 1) {
+        const cadastroUnico: Cadastro = cadastros[0];
+        handleSelecionarCadastro(cadastroUnico);
+        return;
+      }
+      setModalOpen(true);
     } catch (error) {
       console.error("Erro ao buscar bases:", error);
     } finally {
@@ -127,6 +131,8 @@ const PageMenuDeAcesso: React.FC = () => {
         return;
       }
 
+      console.log(accessToken);
+
       try {
         const response = await fetch(
           "https://api.nextfit.com.br/api/equipamento?filter=%5B%7B%22property%22:%22Inativo%22,%22operator%22:%22equal%22,%22value%22:false,%22and%22:true%7D%5D&page=1",
@@ -147,6 +153,8 @@ const PageMenuDeAcesso: React.FC = () => {
               Id: item.Id,
             }))
           );
+
+          console.log(data.Content);
         } else {
           console.error("Failed to fetch equipamentos:", data.Message);
         }
@@ -248,7 +256,7 @@ const PageMenuDeAcesso: React.FC = () => {
         unidadeAuthToken
       );
 
-      enqueueSnackbar("Token de acesso obtido e salvo com sucesso!", {
+      enqueueSnackbar("Busca realizada!", {
         variant: "success",
       });
     } catch (error) {

@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
         bottom: 0,
         left: 0,
         right: 0,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: "#F2F2F2",
         borderTop: "1px solid #e0e0e0",
         padding: "10px",
         zIndex: 1000,
@@ -80,7 +80,7 @@ const Footer: React.FC = () => {
 
       {/* Texto do rodapé */}
       <Typography variant="body2" color="textSecondary">
-        © {new Date().getFullYear()} NextFit. Todos os direitos reservados.
+        © {new Date().getFullYear()} Next Fit. Time de equipamentos.
       </Typography>
     </Box>
   );

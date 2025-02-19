@@ -7,7 +7,7 @@ import {
   Container,
   TextField,
   Grid,
-  Typography,
+  Skeleton,
 } from "@mui/material";
 import logo from "../../assets/logo-roxa-nextfit.webp";
 import { LocalStorageHelper } from "../../shared/helpers/local-storage-helper";
@@ -17,6 +17,7 @@ const PageLogin = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [code, setCode] = useState<string>("");
+  const [loading, setLoading] = useState(false);
   const navlogintomenu = useNavigate();
   const { enqueueSnackbar } = useSnackbar();
 
@@ -76,59 +77,70 @@ const PageLogin = () => {
     >
       <Container
         maxWidth="xs"
-        sx={{
-          backgroundColor: "white",
-          borderRadius: 2,
-          boxShadow: 3,
-          p: 4,
-        }}
+        sx={{ backgroundColor: "white", borderRadius: 2, boxShadow: 3, p: 4 }}
       >
         <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-          <img
-            src={logo}
-            alt="Logo"
-            style={{
-              width: 250,
-              height: "auto",
-              marginBottom: "50px",
-              marginTop: "20px",
-            }}
-          />
+          {loading ? (
+            <Skeleton variant="rectangular" width={250} height={100} />
+          ) : (
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                width: 250,
+                height: "auto",
+                marginBottom: "50px",
+                marginTop: "20px",
+              }}
+            />
+          )}
         </Box>
         <Box component="form" onSubmit={validateLogin} sx={{ mt: 3 }}>
           <Grid container spacing={2}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="E-mail"
-                type="email"
-                variant="outlined"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
+              {loading ? (
+                <Skeleton variant="rectangular" width="100%" height={56} />
+              ) : (
+                <TextField
+                  fullWidth
+                  label="E-mail"
+                  type="email"
+                  variant="outlined"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              )}
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Senha"
-                type="password"
-                variant="outlined"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+              {loading ? (
+                <Skeleton variant="rectangular" width="100%" height={56} />
+              ) : (
+                <TextField
+                  fullWidth
+                  label="Senha"
+                  type="password"
+                  variant="outlined"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              )}
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Código de Acesso"
-                type="text"
-                variant="outlined"
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                required
-              />
+              {loading ? (
+                <Skeleton variant="rectangular" width="100%" height={56} />
+              ) : (
+                <TextField
+                  fullWidth
+                  label="Código de Acesso"
+                  type="text"
+                  variant="outlined"
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  required
+                />
+              )}
             </Grid>
           </Grid>
           <Button
@@ -136,8 +148,9 @@ const PageLogin = () => {
             fullWidth
             variant="contained"
             sx={{ mt: 3, backgroundColor: "#8323A0" }}
+            disabled={loading}
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
         </Box>
       </Container>

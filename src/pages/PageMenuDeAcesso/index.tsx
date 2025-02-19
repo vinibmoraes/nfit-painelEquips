@@ -340,25 +340,43 @@ const PageMenuDeAcesso: React.FC = () => {
               <OpenInNewIcon />
             </IconButton>
           )}
-          <IconButton
-            onClick={() => {
-              enqueueSnackbar("Link de acesso a base copiado!", {
-                variant: "info",
-              });
-            }}
-            sx={{
-              color:
-                cadastroSelecionado?.Status === 1
-                  ? "rgb(76,175,80)" // Cor do botão ATIVO
-                  : cadastroSelecionado?.Status === 2
-                  ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
-                  : cadastroSelecionado?.Status === 3
-                  ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
-                  : "",
-            }}
-          >
-            <ContentCopyIcon sx={{ fontSize: "85%" }} />
-          </IconButton>
+          {[1, 2, 3].includes(cadastroSelecionado?.Status ?? -1) && (
+            <IconButton
+              onClick={() => {
+                // Recupera os valores do localStorage
+                const accessToken = LocalStorageHelper.getItem<string>(
+                  keyUnidadeSelecionadaAuthToken
+                );
+                const refreshToken =
+                  LocalStorageHelper.getItem<string>(keyRefreshToken);
+                const codigoUnidade =
+                  LocalStorageHelper.getItem<string>(keyCodigoUnidade);
+
+                // Monta o link
+                const link = `https://app.nextfit.com.br/logininterno?access_token=${accessToken}&refresh_token=${refreshToken}&codigoUnidade=${codigoUnidade}`;
+
+                // Copia o link para a área de transferência
+                navigator.clipboard.writeText(link);
+
+                // Exibe uma notificação
+                enqueueSnackbar("Link de acesso a base copiado!", {
+                  variant: "info",
+                });
+              }}
+              sx={{
+                color:
+                  cadastroSelecionado?.Status === 1
+                    ? "rgb(76,175,80)" // Cor do botão ATIVO
+                    : cadastroSelecionado?.Status === 2
+                    ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
+                    : cadastroSelecionado?.Status === 3
+                    ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
+                    : "",
+              }}
+            >
+              <ContentCopyIcon sx={{ fontSize: "85%" }} />
+            </IconButton>
+          )}
         </Typography>
       </Box>
 

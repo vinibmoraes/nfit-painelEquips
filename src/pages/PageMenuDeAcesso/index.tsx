@@ -11,7 +11,8 @@ import EmailIcon from "@mui/icons-material/Email";
 import FileCopyIcon from "@mui/icons-material/FileCopy";
 import PhoneIcon from "@mui/icons-material/Phone";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import MapIcon from "@mui/icons-material/Map";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
+import DeleteIcon from "@mui/icons-material/Delete";
 import {
   Box,
   Button,
@@ -325,6 +326,7 @@ const PageMenuDeAcesso: React.FC = () => {
                 )
               }
               sx={{
+                marginLeft: "10px",
                 color:
                   cadastroSelecionado?.Status === 1
                     ? "rgb(76,175,80)" // Cor do botão ATIVO
@@ -338,6 +340,25 @@ const PageMenuDeAcesso: React.FC = () => {
               <OpenInNewIcon />
             </IconButton>
           )}
+          <IconButton
+            onClick={() => {
+              enqueueSnackbar("Link de acesso a base copiado!", {
+                variant: "info",
+              });
+            }}
+            sx={{
+              color:
+                cadastroSelecionado?.Status === 1
+                  ? "rgb(76,175,80)" // Cor do botão ATIVO
+                  : cadastroSelecionado?.Status === 2
+                  ? "rgb(225,171,64)" // Cor do botão SOMENTE LEITURA
+                  : cadastroSelecionado?.Status === 3
+                  ? "rgb(244,67,54)" // Cor do botão BLOQUEADO
+                  : "",
+            }}
+          >
+            <ContentCopyIcon sx={{ fontSize: "85%" }} />
+          </IconButton>
         </Typography>
       </Box>
 
@@ -513,15 +534,17 @@ const PageMenuDeAcesso: React.FC = () => {
           }}
         >
           {/* Tabela de Equipamentos */}
-          {equipamentos.length > 0 && (
+          {cadastroSelecionado && equipamentos.length > 0 && (
             <TableContainer
+              component={Paper}
               sx={{
-                flexBasis: "auto",
+                flexBasis: "65%",
                 maxWidth: "35%", // Ajuste para a largura máxima
                 overflowY: "auto",
                 boxShadow: 1,
                 borderRadius: 2,
-                maxHeight: equipamentos.length > 0 ? "none" : "fit-content",
+                maxHeight: "50vh",
+                // maxHeight: equipamentos.length > 0 ? "none" : "fit-content",
               }}
             >
               <Table sx={{ minWidth: 300 }}>
@@ -529,13 +552,12 @@ const PageMenuDeAcesso: React.FC = () => {
                   <TableRow>
                     <TableCell
                       sx={{
-                        borderRight: "1px solid",
-                        borderColor: "divider",
                         backgroundColor: "#f5f5f5",
                         fontWeight: "bold",
+                        alignItems: "center",
                         padding: "12px",
-                        textAlign: "left",
                         fontSize: "16px",
+                        textAlign: "left",
                       }}
                     >
                       Equipamento(s)
@@ -554,13 +576,27 @@ const PageMenuDeAcesso: React.FC = () => {
                     >
                       <TableCell
                         sx={{
-                          borderRight: "1px solid",
+                          // borderRight: "1px solid",
                           borderColor: "divider",
                           padding: "12px",
                           fontSize: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
                         }}
                       >
                         {equipamento.Descricao}
+
+                        <IconButton
+                          sx={{
+                            color: "#8323A0",
+                            "&:hover": {
+                              color: "#6C1E9B",
+                            },
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -570,16 +606,17 @@ const PageMenuDeAcesso: React.FC = () => {
           )}
 
           {/* Tabela de Usuários */}
-          {usuarios.length > 0 && (
+          {cadastroSelecionado && usuarios.length > 0 && (
             <TableContainer
               component={Paper}
               sx={{
-                flexBasis: "65%",
-                maxWidth: "65%",
+                flexBasis: equipamentos.length > 0 ? "65%" : "65%", // Ajusta a largura com base na presença de equipamentos
+                maxWidth: equipamentos.length > 0 ? "65%" : "100%",
                 maxHeight: "50vh",
                 overflowY: "auto",
                 boxShadow: 1,
                 borderRadius: 2,
+                margin: equipamentos.length === 0 ? "0 auto" : "0", // Centraliza a tabela de usuários quando não há equipamentos
               }}
             >
               <Table sx={{ minWidth: 300 }}>

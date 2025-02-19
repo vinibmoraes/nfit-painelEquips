@@ -73,8 +73,7 @@ const Footer: React.FC = () => {
             },
           }}
         >
-          <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />{" "}
-          {/* Ícone menor */}
+          <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
         </IconButton>
       </Tooltip>
 

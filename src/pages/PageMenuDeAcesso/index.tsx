@@ -270,6 +270,46 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
+  const inativarEquipamento = async (codigoEquipamento: string) => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/equipamento/Inativar",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ Codigo: codigoEquipamento }), // Envia o código como string
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao inativar equipamento");
+      }
+
+      // Remove o equipamento da lista após inativação bem-sucedida
+      setEquipamentos(
+        (prevEquipamentos) =>
+          prevEquipamentos.filter(
+            (equipamento) => equipamento.Id.toString() !== codigoEquipamento
+          ) // Compara como string
+      );
+
+      enqueueSnackbar("Equipamento removido com sucesso!", {
+        variant: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao inativar equipamento:", error);
+      enqueueSnackbar("Erro ao inativar equipamento. Tente novamente.", {
+        variant: "error",
+      });
+    }
+  };
+
   const copiarEmail = (email: string) => {
     navigator.clipboard.writeText(email);
     enqueueSnackbar("E-mail copiado!", { variant: "info" });
@@ -606,6 +646,9 @@ const PageMenuDeAcesso: React.FC = () => {
                         {equipamento.Descricao}
 
                         <IconButton
+                          onClick={() =>
+                            inativarEquipamento(equipamento.Id.toString())
+                          } // Passa o Id como string
                           sx={{
                             color: "#8323A0",
                             "&:hover": {

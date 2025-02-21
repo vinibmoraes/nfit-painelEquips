@@ -28,7 +28,10 @@ import {
   Typography,
   IconButton,
   Tooltip,
-  Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
@@ -58,6 +61,13 @@ const PageMenuDeAcesso: React.FC = () => {
   const [cadastro, setCadastro] = useState<any>(null);
   const [equipamentos, setEquipamentos] = useState<Equipamento[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [equipamentoParaInativar, setEquipamentoParaInativar] = useState<
+    number | null
+  >(null);
+  const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
+  const [codigoPerfilAcesso, setCodigoPerfilAcesso] = useState<string | null>(
+    null
+  );
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -270,7 +280,7 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const inativarEquipamento = async (codigoEquipamento: string) => {
+  const inativarEquipamento = async (codigoEquipamento: number) => {
     const authToken =
       LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
@@ -295,7 +305,7 @@ const PageMenuDeAcesso: React.FC = () => {
       setEquipamentos(
         (prevEquipamentos) =>
           prevEquipamentos.filter(
-            (equipamento) => equipamento.Id.toString() !== codigoEquipamento
+            (equipamento) => equipamento.Id !== codigoEquipamento
           ) // Compara como string
       );
 
@@ -305,6 +315,161 @@ const PageMenuDeAcesso: React.FC = () => {
     } catch (error) {
       console.error("Erro ao inativar equipamento:", error);
       enqueueSnackbar("Erro ao inativar equipamento. Tente novamente.", {
+        variant: "error",
+      });
+    }
+  };
+
+  const obterPerfilAdministrador = async (codigoUnidade: string) => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    try {
+      const response = await fetch(
+        `https://api.nextfit.com.br/api/PerfilAcesso?fields=%5B%22Id%22,%22Nome%22%5D&filter=%5B%7B%22property%22:%22Nome%22,%22operator%22:%22contains%22,%22value%22:%22%22,%22and%22:%22true%22%7D,%7B%22property%22:%22Inativo%22,%22operator%22:%22equal%22,%22value%22:false,%22and%22:true%7D%5D&limit=5&page=1`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao obter perfis de acesso");
+      }
+
+      const data: RespostaBaseApi<{ Id: number; Nome: string }[]> =
+        await response.json();
+
+      // Filtra o perfil de administrador
+      const perfilAdministrador = data.Content.find(
+        (perfil) => perfil.Nome === "Administrador"
+      );
+
+      if (!perfilAdministrador) {
+        throw new Error("Perfil de administrador não encontrado");
+      }
+
+      return perfilAdministrador.Id.toString(); // Retorna o Id como string
+    } catch (error) {
+      console.error("Erro ao obter perfil de administrador:", error);
+      return null;
+    }
+  };
+
+  const criarUsuarioCatraca = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    // Verifica se há um cadastro selecionado
+    if (!cadastroSelecionado) {
+      enqueueSnackbar("Nenhum cadastro selecionado.", {
+        variant: "error",
+      });
+      return;
+    }
+
+    // Recupera o e-mail do usuário master
+    const usuarioMaster = LocalStorageHelper.getItem<Usuario>(keyUsuarioMaster);
+    const emailMaster = usuarioMaster?.Email || "";
+
+    // Formata o e-mail com "catraca" após o @
+    const emailCatraca = emailMaster.replace(/@[^.]+/, "@controle");
+
+    // Define a data de nascimento (um dia antes da data atual)
+    const dataNascimento = new Date();
+    dataNascimento.setDate(dataNascimento.getDate() - 1); // Subtrai um dia
+
+    // Obtém o CodigoPerfilAcesso do perfil de administrador
+    const codigoPerfilAcesso = await obterPerfilAdministrador(
+      cadastroSelecionado.CodigoUnidade.toString() // Agora garantimos que cadastroSelecionado não é null/undefined
+    );
+
+    if (!codigoPerfilAcesso) {
+      enqueueSnackbar("Erro ao obter o perfil de administrador.", {
+        variant: "error",
+      });
+      return;
+    }
+
+    // Dados do usuário
+    const usuarioData = {
+      Nome: "CONTROLE (NÃO ALTERAR)",
+      Email: emailCatraca,
+      TelefoneCompleto: "(99)999999999",
+      DddFone: "99",
+      Fone: "999999999",
+      Senha: "123456a",
+      DataNascimento: dataNascimento.toISOString(), // Formato ISO
+      TipoCadastro: 1,
+      TipoConselho: 1,
+      CodigoUnidadePreferencial: cadastroSelecionado.CodigoUnidade.toString(), // Convertido para string
+      Unidades: [
+        {
+          CodigoUnidade: cadastroSelecionado.CodigoUnidade.toString(), // Convertido para string
+          CodigoPerfilAcesso: codigoPerfilAcesso, // Perfil de acesso obtido dinamicamente
+        },
+      ],
+      Usuario: emailCatraca,
+    };
+
+    console.log("Payload enviado:", usuarioData); // Log para depuração
+
+    try {
+      const response = await fetch("https://api.nextfit.com.br/api/usuario", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(usuarioData),
+      });
+
+      console.log("Resposta da API:", response); // Log para depuração
+
+      if (!response.ok) {
+        const errorResponse = await response.json(); // Captura a resposta de erro da API
+        console.error("Resposta de erro da API:", errorResponse); // Log para depuração
+        throw new Error(
+          errorResponse.Message || "Erro ao criar usuário catraca"
+        );
+      }
+
+      const resposta: RespostaBaseApi<{ Id: number }> = await response.json();
+
+      if (resposta.Success) {
+        enqueueSnackbar("Usuário catraca criado com sucesso!", {
+          variant: "success",
+        });
+        console.log("ID do usuário criado:", resposta.Content.Id);
+
+        // Atualiza a lista de usuários no frontend
+        const novoUsuario: Usuario = {
+          Id: resposta.Content.Id,
+          Nome: usuarioData.Nome,
+          Email: usuarioData.Email,
+          TelefoneCompleto: usuarioData.TelefoneCompleto,
+          DddFone: usuarioData.DddFone,
+          Fone: usuarioData.Fone,
+          TipoPerfil: 1, // Defina o tipo de perfil conforme necessário
+          Inativo: false,
+          TipoCadastro: usuarioData.TipoCadastro,
+          TipoConselho: usuarioData.TipoConselho,
+          CodigoUnidadePreferencial: usuarioData.CodigoUnidadePreferencial,
+          Unidades: usuarioData.Unidades,
+          Usuario: usuarioData.Usuario,
+          AcessoBloqueado: false,
+        };
+
+        // Adiciona o novo usuário ao estado `usuarios`
+        setUsuarios((prevUsuarios) => [...prevUsuarios, novoUsuario]);
+      } else {
+        throw new Error(resposta.Message || "Erro ao criar usuário catraca");
+      }
+    } catch (error) {
+      console.error("Erro ao criar usuário catraca:", error);
+      enqueueSnackbar("Erro ao criar usuário catraca. Tente novamente.", {
         variant: "error",
       });
     }
@@ -434,6 +599,7 @@ const PageMenuDeAcesso: React.FC = () => {
         >
           <Button
             variant="contained"
+            onClick={criarUsuarioCatraca}
             sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
           >
             Criar usuário catraca
@@ -646,9 +812,10 @@ const PageMenuDeAcesso: React.FC = () => {
                         {equipamento.Descricao}
 
                         <IconButton
-                          onClick={() =>
-                            inativarEquipamento(equipamento.Id.toString())
-                          } // Passa o Id como string
+                          onClick={() => {
+                            setEquipamentoParaInativar(equipamento.Id); // Armazena o Id do equipamento
+                            setModalConfirmacaoAberto(true); // Abre o modal de confirmação
+                          }}
                           sx={{
                             color: "#8323A0",
                             "&:hover": {
@@ -778,6 +945,63 @@ const PageMenuDeAcesso: React.FC = () => {
           )}
         </Box>
       </Box>
+      <Modal
+        open={modalConfirmacaoAberto}
+        onClose={() => setModalConfirmacaoAberto(false)} // Fecha o modal ao clicar fora
+        aria-labelledby="modal-confirmacao-titulo"
+        aria-describedby="modal-confirmacao-descricao"
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            id="modal-confirmacao-titulo"
+            sx={{ display: "flex", justifyContent: "center" }}
+            variant="h6"
+            component="h2"
+          >
+            Confirmar remoção
+          </Typography>
+          <Typography
+            id="modal-confirmacao-descricao"
+            sx={{ display: "flex", justifyContent: "center", mt: 2 }}
+          >
+            Tem certeza que deseja remover este equipamento?
+          </Typography>
+          <Box
+            sx={{ mt: 4, display: "flex", justifyContent: "center", gap: 2 }}
+          >
+            <Button
+              variant="outlined"
+              onClick={() => setModalConfirmacaoAberto(false)} // Fecha o modal sem inativar
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => {
+                if (equipamentoParaInativar) {
+                  inativarEquipamento(equipamentoParaInativar); // Inativa o equipamento
+                }
+                setModalConfirmacaoAberto(false); // Fecha o modal
+              }}
+            >
+              Remover
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
 
       <Footer />
     </Box>

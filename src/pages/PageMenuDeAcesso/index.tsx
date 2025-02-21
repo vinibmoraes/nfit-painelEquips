@@ -28,10 +28,12 @@ import {
   Typography,
   IconButton,
   Tooltip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
@@ -65,9 +67,24 @@ const PageMenuDeAcesso: React.FC = () => {
     number | null
   >(null);
   const [modalConfirmacaoAberto, setModalConfirmacaoAberto] = useState(false);
-  const [codigoPerfilAcesso, setCodigoPerfilAcesso] = useState<string | null>(
-    null
-  );
+
+  const [modalTipoEquipamentoOpen, setModalTipoEquipamentoOpen] =
+    useState(false);
+
+  const [modalCatracaOpen, setModalCatracaOpen] = useState(false);
+  const [modalLeitorOpen, setModalLeitorOpen] = useState(false);
+  const [modalReconhecimentoFacialOpen, setModalReconhecimentoFacialOpen] =
+    useState(false);
+  const [modalImpressoraOpen, setModalImpressoraOpen] = useState(false);
+  const [modeloCatraca, setModeloCatraca] = useState<string>("");
+  const [descricaoCatraca, setDescricaoCatraca] = useState<string>("");
+  const [versaoTopData, setVersaoTopData] = useState<string>("");
+  const [ipServidorTopData, setIpServidorTopData] = useState<string>("");
+  const [ipInnerTopData, setIpInnerTopData] = useState<string>("");
+  const [sentidoCatraca, setSentidoCatraca] = useState<string>("horario");
+  const [tipoLeitor, setTipoLeitor] = useState<string>("codigo-barras");
+  const [biometriaHabilitada, setBiometriaHabilitada] =
+    useState<boolean>(false);
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -377,6 +394,17 @@ const PageMenuDeAcesso: React.FC = () => {
     // Formata o e-mail com "catraca" após o @
     const emailCatraca = emailMaster.replace(/@[^.]+/, "@controle");
 
+    const emailJaExiste = usuarios.some(
+      (usuario) => usuario.Email === emailCatraca
+    );
+
+    if (emailJaExiste) {
+      enqueueSnackbar("O e-mail de controle já existe!", {
+        variant: "warning",
+      });
+      return; // Interrompe a criação do usuário
+    }
+
     // Define a data de nascimento (um dia antes da data atual)
     const dataNascimento = new Date();
     dataNascimento.setDate(dataNascimento.getDate() - 1); // Subtrai um dia
@@ -395,7 +423,7 @@ const PageMenuDeAcesso: React.FC = () => {
 
     // Dados do usuário
     const usuarioData = {
-      Nome: "CONTROLE (NÃO ALTERAR)",
+      Nome: "Controle de acesso (Não alterar)",
       Email: emailCatraca,
       TelefoneCompleto: "(99)999999999",
       DddFone: "99",
@@ -475,6 +503,26 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
+  const handleSelecionarTipoEquipamento = (tipo: string) => {
+    setModalTipoEquipamentoOpen(false); // Fecha o modal de seleção de tipo
+    switch (tipo) {
+      case "catraca":
+        setModalCatracaOpen(true);
+        break;
+      case "leitor":
+        setModalLeitorOpen(true);
+        break;
+      case "reconhecimento_facial":
+        setModalReconhecimentoFacialOpen(true);
+        break;
+      case "impressora":
+        setModalImpressoraOpen(true);
+        break;
+      default:
+        break;
+    }
+  };
+
   const copiarEmail = (email: string) => {
     navigator.clipboard.writeText(email);
     enqueueSnackbar("E-mail copiado!", { variant: "info" });
@@ -484,6 +532,132 @@ const PageMenuDeAcesso: React.FC = () => {
     const telefoneFormatado = `(${dddFone}) ${fone}`;
     navigator.clipboard.writeText(telefoneFormatado);
     enqueueSnackbar("Telefone copiado!", { variant: "info" });
+  };
+
+  const modelosCatraca = [
+    "Fake",
+    "TopData",
+    "Actuar Smart",
+    "Actuar LiteNet2",
+    "Henry 7x",
+    "Henry 8x",
+    "Serial Genérica",
+    "iD Block Enterprise",
+    "iD Block Modo Pro",
+    "Proveu Tupã",
+    "Tecnibra TCA IHM",
+  ];
+
+  const handleCriarCatraca = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    // Verifica se o modelo de catraca foi selecionado
+    if (!modeloCatraca) {
+      enqueueSnackbar("Selecione um modelo de catraca.", {
+        variant: "warning",
+      });
+      return;
+    }
+
+    // Monta o payload de acordo com o modelo selecionado
+    let payload: any;
+
+    if (modeloCatraca === "Fake") {
+      // Payload para catraca Fake
+      payload = {
+        Descricao: descricaoCatraca,
+        Tipo: 1,
+        ModeloCatraca: 20,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: null,
+        ModeloTeclado: null,
+        Fake: {
+          Giro: 2,
+        },
+      };
+    } else if (modeloCatraca === "TopData") {
+      // Validação dos campos obrigatórios para TopData
+      if (!versaoTopData || !ipServidorTopData || !ipInnerTopData) {
+        enqueueSnackbar("Preencha todos os campos obrigatórios.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Monta a descrição da catraca TopData
+      const descricao = `TopData v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`;
+
+      // Payload para catraca TopData
+      payload = {
+        Descricao: descricao,
+        Tipo: 1,
+        ModeloCatraca: 1,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: null,
+        ModeloTeclado: null,
+        TopData: {
+          TipoComunicacao: 2,
+          Porta: "3570",
+          QuantidadeDigitos: 4,
+          Giro: 2,
+          SentidoCatraca: sentidoCatraca === "horario" ? 1 : 2,
+          Inner: "1", // Sempre "1" no payload
+          Biometria: biometriaHabilitada, // Define se a biometria está habilitada
+          Identificacao: true,
+          Teclado: true,
+          TipoLeitor: tipoLeitor === "codigo-barras" ? 0 : 6, // 0 para código de barras, 6 para Wiegand
+        },
+      };
+
+      // Adiciona "c/Facial" à descrição se o tipo de leitor for Wiegand
+      if (tipoLeitor === "wiegand") {
+        payload.Descricao += " c/Facial";
+      }
+    }
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/equipamento",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao criar catraca");
+      }
+
+      enqueueSnackbar("Catraca criada com sucesso!", {
+        variant: "success",
+      });
+
+      // Fecha o modal e reseta os estados
+      setModalCatracaOpen(false);
+      setModeloCatraca("");
+      setDescricaoCatraca("");
+      setVersaoTopData("");
+      setIpServidorTopData("");
+      setIpInnerTopData("");
+      setSentidoCatraca("horario");
+      setTipoLeitor("codigo-barras");
+      setBiometriaHabilitada(false);
+
+      // Atualiza a lista de equipamentos
+      await buscarEquipamentosCadastroSelecionado();
+    } catch (error) {
+      console.error("Erro ao criar catraca:", error);
+      enqueueSnackbar("Erro ao criar catraca. Tente novamente.", {
+        variant: "error",
+      });
+    }
   };
 
   return (
@@ -606,6 +780,7 @@ const PageMenuDeAcesso: React.FC = () => {
           </Button>
           <Button
             variant="contained"
+            onClick={() => setModalTipoEquipamentoOpen(true)}
             sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
           >
             Criar equipamentos
@@ -998,6 +1173,182 @@ const PageMenuDeAcesso: React.FC = () => {
               }}
             >
               Remover
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      <Modal
+        open={modalTipoEquipamentoOpen}
+        onClose={() => setModalTipoEquipamentoOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Selecione o equipamento a criar:
+          </Typography>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <Button
+              variant="contained"
+              onClick={() => handleSelecionarTipoEquipamento("catraca")}
+            >
+              Catraca
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleSelecionarTipoEquipamento("leitor")}
+            >
+              Leitor biométrico
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() =>
+                handleSelecionarTipoEquipamento("reconhecimento_facial")
+              }
+            >
+              Reconhecimento Facial
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => handleSelecionarTipoEquipamento("impressora")}
+            >
+              Impressora
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      <Modal open={modalCatracaOpen} onClose={() => setModalCatracaOpen(false)}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Criar Catraca
+          </Typography>
+
+          {/* Combobox para seleção do modelo de catraca */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="modelo-catraca-label">Modelo da Catraca</InputLabel>
+            <Select
+              labelId="modelo-catraca-label"
+              id="modelo-catraca"
+              value={modeloCatraca}
+              label="Modelo da Catraca"
+              onChange={(e) => setModeloCatraca(e.target.value as string)}
+            >
+              {modelosCatraca.map((modelo, index) => (
+                <MenuItem key={index} value={modelo}>
+                  {modelo}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Campos específicos para a catraca TopData */}
+          {modeloCatraca === "TopData" && (
+            <>
+              {/* Campos existentes (versão, IP do servidor, IP do inner, etc.) */}
+              <TextField
+                label="Versão"
+                fullWidth
+                value={versaoTopData}
+                onChange={(e) => setVersaoTopData(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="IP do Servidor"
+                fullWidth
+                value={ipServidorTopData}
+                onChange={(e) => setIpServidorTopData(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="IP do Inner"
+                fullWidth
+                value={ipInnerTopData}
+                onChange={(e) => setIpInnerTopData(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-catraca-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-catraca-label"
+                  id="sentido-catraca"
+                  value={sentidoCatraca}
+                  label="Sentido da Catraca"
+                  onChange={(e) => setSentidoCatraca(e.target.value as string)}
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="tipo-leitor-label">Tipo de Leitor</InputLabel>
+                <Select
+                  labelId="tipo-leitor-label"
+                  id="tipo-leitor"
+                  value={tipoLeitor}
+                  label="Tipo de Leitor"
+                  onChange={(e) => setTipoLeitor(e.target.value as string)}
+                >
+                  <MenuItem value="codigo-barras">Código de Barras</MenuItem>
+                  <MenuItem value="wiegand">Wiegand</MenuItem>
+                </Select>
+              </FormControl>
+              {/* Novo campo para habilitar/desabilitar biometria */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={biometriaHabilitada}
+                    onChange={(e) => setBiometriaHabilitada(e.target.checked)}
+                  />
+                }
+                label="Habilitar Biometria"
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
+          {/* Botões de Ação */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalCatracaOpen(false)} // Fecha o modal sem criar
+            >
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleCriarCatraca}>
+              Criar
             </Button>
           </Box>
         </Box>

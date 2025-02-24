@@ -88,6 +88,20 @@ const PageMenuDeAcesso: React.FC = () => {
   const [modalLeitorBiometricoOpen, setModalLeitorBiometricoOpen] =
     useState(false);
   const [tipoLeitorBiometrico, setTipoLeitorBiometrico] = useState<string>("");
+  const [giroCatraca, setGiroCatraca] = useState<string>("entrada");
+  // Estados para a catraca Actuar LiteNet 2
+  const [faixaIp, setFaixaIp] = useState<string>("");
+  const [numero, setNumero] = useState<string>("");
+  const [versaoActuar, setVersaoActuar] = useState<string>("v1");
+  const [sentidoCatracaLiteNet, setSentidoCatracaLiteNet] =
+    useState<string>("horario");
+  const [giroCatracaLiteNet, setGiroCatracaLiteNet] =
+    useState<string>("entrada");
+  const [ipHenry7x, setIpHenry7x] = useState<string>("");
+  const [sentidoHenry7x, setSentidoHenry7x] = useState<string>("horario");
+  const [giroHenry7x, setGiroHenry7x] = useState<string>("entrada");
+  const [modoLeituraHenry7x, setModoLeituraHenry7x] =
+    useState<string>("teclado-biometria");
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -555,7 +569,6 @@ const PageMenuDeAcesso: React.FC = () => {
     const authToken =
       LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
-    // Verifica se o modelo de catraca foi selecionado
     if (!modeloCatraca) {
       enqueueSnackbar("Selecione um modelo de catraca.", {
         variant: "warning",
@@ -563,7 +576,6 @@ const PageMenuDeAcesso: React.FC = () => {
       return;
     }
 
-    // Monta o payload de acordo com o modelo selecionado
     let payload: any;
 
     if (modeloCatraca === "Fake") {
@@ -581,20 +593,9 @@ const PageMenuDeAcesso: React.FC = () => {
         },
       };
     } else if (modeloCatraca === "TopData") {
-      // Validação dos campos obrigatórios para TopData
-      if (!versaoTopData || !ipServidorTopData || !ipInnerTopData) {
-        enqueueSnackbar("Preencha todos os campos obrigatórios.", {
-          variant: "warning",
-        });
-        return;
-      }
-
-      // Monta a descrição da catraca TopData
-      const descricao = `TopData v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`;
-
       // Payload para catraca TopData
       payload = {
-        Descricao: descricao,
+        Descricao: `TopData v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`,
         Tipo: 1,
         ModeloCatraca: 1,
         ModeloLeitorBiometria: null,
@@ -607,19 +608,128 @@ const PageMenuDeAcesso: React.FC = () => {
           QuantidadeDigitos: 4,
           Giro: 2,
           SentidoCatraca: sentidoCatraca === "horario" ? 1 : 2,
-          Inner: "1", // Sempre "1" no payload
-          Biometria: biometriaHabilitada, // Define se a biometria está habilitada
+          Inner: "1",
+          Biometria: biometriaHabilitada,
           Identificacao: true,
           Teclado: true,
-          TipoLeitor: tipoLeitor === "codigo-barras" ? 0 : 6, // 0 para código de barras, 6 para Wiegand
+          TipoLeitor: tipoLeitor === "codigo-barras" ? 0 : 6,
         },
       };
+    } else if (modeloCatraca === "Actuar Smart") {
+      // Cria o leitor biométrico Digital Persona V2
+      const codigoLeitorBiometrico =
+        await criarLeitorBiometricoDigitalPersonaV2();
 
-      // Adiciona "c/Facial" à descrição se o tipo de leitor for Wiegand
-      if (tipoLeitor === "wiegand") {
-        payload.Descricao = `TopData c/facial | v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`;
+      if (!codigoLeitorBiometrico) {
+        enqueueSnackbar(
+          "Erro ao criar leitor biométrico. A catraca não foi criada.",
+          {
+            variant: "error",
+          }
+        );
+        return;
       }
+
+      // Payload para catraca Actuar Smart
+      payload = {
+        Descricao: "Actuar Smart",
+        Tipo: 1,
+        ModeloCatraca: 3,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: null,
+        ModeloTeclado: null,
+        ActuarSmart: {
+          ModoIp: 1,
+          Giro: giroCatraca === "entrada" ? 1 : 2, // 1 para entrada, 2 para entrada e saída
+          SentidoCatraca: sentidoCatraca === "horario" ? 1 : 2, // 1 para horário, 2 para anti-horário
+          UtilizaLeitorBiometricoExternoValidacao: true,
+          CodigoLeitorBiometricoExternoValidacao: codigoLeitorBiometrico,
+        },
+      };
+    } else if (modeloCatraca === "Actuar LiteNet2") {
+      // Payload para catraca Actuar LiteNet 2
+      if (!faixaIp || !numero) {
+        enqueueSnackbar("Preencha todos os campos obrigatórios.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento correto do campo Giro com base no backend
+      let giro;
+      switch (giroCatracaLiteNet) {
+        case "entrada":
+          giro = 2; // Controla Entrada
+          break;
+        case "entrada-saida":
+          giro = 4; // Controla Entrada e Saída
+          break;
+        default:
+      }
+
+      payload = {
+        Descricao:
+          versaoActuar === "v1"
+            ? "Actuar LiteNet 2"
+            : "Actuar LiteNet 2 c/teclado",
+        Tipo: 1,
+        ModeloCatraca: 19,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: null,
+        ModeloTeclado: null,
+        ActuarLiteNet2: {
+          Versao: versaoActuar === "v1" ? 1 : 2,
+          QuantidadeDigitos: 4,
+          Numero: numero,
+          SentidoCatraca: sentidoCatracaLiteNet === "horario" ? 1 : 2,
+          FaixaIp: faixaIp,
+          Giro: giro, // Usando o valor mapeado corretamente
+        },
+      };
+    } else if (modeloCatraca === "Henry 7x") {
+      // Validação dos campos obrigatórios
+      if (!ipHenry7x) {
+        enqueueSnackbar("Preencha o IP da catraca.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoHenry7x === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroHenry7x === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+      const formaLeitura =
+        modoLeituraHenry7x === "teclado-biometria"
+          ? 3
+          : modoLeituraHenry7x === "teclado"
+          ? 1
+          : 2; // 3 para teclado e biometria, 1 para teclado, 2 para biometria
+
+      // Payload para a Henry 7x
+      payload = {
+        Descricao: "Henry 7X", // Fixo
+        Tipo: 1, // Fixo
+        ModeloCatraca: 4, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        Henry7X: {
+          TipoComunicacao: 1, // Fixo
+          Porta: "3000", // Fixo
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          Ip: ipHenry7x, // Preenchido pelo usuário
+          Giro: giro, // Preenchido pelo usuário
+          FormaLeitura: formaLeitura, // Preenchido pelo usuário
+          QuantidadeDigitos: 4, // Fixo
+          TempoLiberacaoSegundos: 3, // Fixo
+        },
+      };
     }
+
+    console.log("Payload enviado:", payload); // Depuração
 
     try {
       const response = await fetch(
@@ -650,8 +760,16 @@ const PageMenuDeAcesso: React.FC = () => {
       setIpServidorTopData("");
       setIpInnerTopData("");
       setSentidoCatraca("horario");
-      setTipoLeitor("codigo-barras");
-      setBiometriaHabilitada(false);
+      setGiroCatraca("entrada");
+      setFaixaIp("");
+      setNumero("");
+      setVersaoActuar("v1");
+      setSentidoCatracaLiteNet("horario");
+      setGiroCatracaLiteNet("entrada");
+      setIpHenry7x("");
+      setSentidoHenry7x("horario");
+      setGiroHenry7x("entrada");
+      setModoLeituraHenry7x("teclado-biometria");
 
       // Atualiza a lista de equipamentos
       await buscarEquipamentosCadastroSelecionado();
@@ -708,6 +826,21 @@ const PageMenuDeAcesso: React.FC = () => {
         };
         break;
 
+      case "Hamster DX":
+        payload = {
+          Descricao: "Hamster DX",
+          Tipo: 2, // Tipo 2 para leitor biométrico
+          ModeloCatraca: null,
+          ModeloLeitorBiometria: 3, // Modelo específico para Hamster DX
+          ModeloImpressora: null,
+          ModeloReconhecimentoFacial: null,
+          ModeloTeclado: null,
+          HamsterDx: {
+            UtilizaImpressaoTreino: false, // Configuração específica para Hamster DX
+          },
+        };
+        break;
+
       default:
         enqueueSnackbar("Tipo de leitor biométrico não suportado.", {
           variant: "warning",
@@ -745,6 +878,53 @@ const PageMenuDeAcesso: React.FC = () => {
       enqueueSnackbar("Erro ao criar leitor biométrico. Tente novamente.", {
         variant: "error",
       });
+    }
+  };
+
+  const criarLeitorBiometricoDigitalPersonaV2 = async (): Promise<
+    number | null
+  > => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    const payload = {
+      Descricao: "Digital Persona V2",
+      Tipo: 2, // Tipo 2 para leitor biométrico
+      ModeloCatraca: null,
+      ModeloLeitorBiometria: 2, // Modelo específico para Digital Persona V2
+      ModeloImpressora: null,
+      ModeloReconhecimentoFacial: null,
+      ModeloTeclado: null,
+      DigitalPersonaUAreU: {
+        Driver: 2, // Driver específico para Digital Persona V2
+      },
+    };
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/equipamento",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao criar leitor biométrico");
+      }
+
+      const resposta: RespostaBaseApi<{ Id: number }> = await response.json();
+      return resposta.Content.Id; // Retorna o Id do leitor biométrico criado
+    } catch (error) {
+      console.error("Erro ao criar leitor biométrico:", error);
+      enqueueSnackbar("Erro ao criar leitor biométrico. Tente novamente.", {
+        variant: "error",
+      });
+      return null;
     }
   };
 
@@ -1355,7 +1535,7 @@ const PageMenuDeAcesso: React.FC = () => {
             </Select>
           </FormControl>
 
-          {/* Campo de descrição (visível apenas para a catraca Fake) */}
+          {/* Campos específicos para a catraca Fake) */}
           {modeloCatraca === "Fake" && (
             <TextField
               label="Descrição"
@@ -1405,6 +1585,7 @@ const PageMenuDeAcesso: React.FC = () => {
                   <MenuItem value="anti-horario">Anti-Horário</MenuItem>
                 </Select>
               </FormControl>
+
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel id="tipo-leitor-label">Tipo de Leitor</InputLabel>
                 <Select
@@ -1430,6 +1611,180 @@ const PageMenuDeAcesso: React.FC = () => {
                 label="Habilitar Biometria"
                 sx={{ mb: 2 }}
               />
+            </>
+          )}
+
+          {/* Campos específicos para a catraca Actuar Smart) */}
+          {modeloCatraca === "Actuar Smart" && (
+            <>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-catraca-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-catraca-label"
+                  id="sentido-catraca"
+                  value={sentidoCatraca}
+                  label="Sentido da Catraca"
+                  onChange={(e) => setSentidoCatraca(e.target.value as string)}
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-catraca-label">Giro da Catraca</InputLabel>
+                <Select
+                  labelId="giro-catraca-label"
+                  id="giro-catraca"
+                  value={giroCatraca}
+                  label="Giro da Catraca"
+                  onChange={(e) => setGiroCatraca(e.target.value as string)}
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {modeloCatraca === "Actuar LiteNet2" && (
+            <>
+              <TextField
+                label="Faixa de IP"
+                fullWidth
+                value={faixaIp}
+                onChange={(e) => setFaixaIp(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Número"
+                fullWidth
+                value={numero}
+                onChange={(e) => setNumero(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="versao-actuar-label">Versão</InputLabel>
+                <Select
+                  labelId="versao-actuar-label"
+                  id="versao-actuar"
+                  value={versaoActuar}
+                  label="Versão"
+                  onChange={(e) => setVersaoActuar(e.target.value as string)}
+                >
+                  <MenuItem value="v1">V1 - Actuar (sem teclado)</MenuItem>
+                  <MenuItem value="v2">V2 - Toletus (com teclado)</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-catraca-litenet-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-catraca-litenet-label"
+                  id="sentido-catraca-litenet"
+                  value={sentidoCatracaLiteNet}
+                  label="Sentido da Catraca"
+                  onChange={(e) =>
+                    setSentidoCatracaLiteNet(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-catraca-litenet-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-catraca-litenet-label"
+                  id="giro-catraca-litenet"
+                  value={giroCatracaLiteNet}
+                  label="Giro da Catraca"
+                  onChange={(e) =>
+                    setGiroCatracaLiteNet(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {modeloCatraca === "Henry 7x" && (
+            <>
+              {/* Campo: IP da Catraca */}
+              <TextField
+                label="IP da Catraca"
+                fullWidth
+                value={ipHenry7x}
+                onChange={(e) => setIpHenry7x(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+
+              {/* Campo: Sentido da Catraca */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-henry7x-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-henry7x-label"
+                  id="sentido-henry7x"
+                  value={sentidoHenry7x}
+                  label="Sentido da Catraca"
+                  onChange={(e) => setSentidoHenry7x(e.target.value as string)}
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Campo: Giro da Catraca */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-henry7x-label">Giro da Catraca</InputLabel>
+                <Select
+                  labelId="giro-henry7x-label"
+                  id="giro-henry7x"
+                  value={giroHenry7x}
+                  label="Giro da Catraca"
+                  onChange={(e) => setGiroHenry7x(e.target.value as string)}
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Campo: Modo de Leitura */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="modo-leitura-henry7x-label">
+                  Modo de Leitura
+                </InputLabel>
+                <Select
+                  labelId="modo-leitura-henry7x-label"
+                  id="modo-leitura-henry7x"
+                  value={modoLeituraHenry7x}
+                  label="Modo de Leitura"
+                  onChange={(e) =>
+                    setModoLeituraHenry7x(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="teclado-biometria">
+                    Teclado e Biometria
+                  </MenuItem>
+                  <MenuItem value="teclado">Teclado</MenuItem>
+                  <MenuItem value="biometria">Biometria</MenuItem>
+                </Select>
+              </FormControl>
             </>
           )}
 

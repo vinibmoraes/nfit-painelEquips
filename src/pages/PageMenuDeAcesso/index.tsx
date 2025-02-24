@@ -674,56 +674,76 @@ const PageMenuDeAcesso: React.FC = () => {
       return;
     }
 
-    // Verifica se o tipo selecionado é "Digital Persona V2"
-    if (tipoLeitorBiometrico === "Digital Persona V2") {
-      const payload = {
-        Descricao: "Digital Persona V2",
-        Tipo: 2, // Tipo 2 para leitor biométrico
-        ModeloCatraca: null,
-        ModeloLeitorBiometria: 2, // Modelo específico para Digital Persona V2
-        ModeloImpressora: null,
-        ModeloReconhecimentoFacial: null,
-        ModeloTeclado: null,
-        DigitalPersonaUAreU: {
-          Driver: 2, // Driver específico para Digital Persona V2
-        },
-      };
+    let payload: any;
 
-      try {
-        const response = await fetch(
-          "https://api.nextfit.com.br/api/equipamento",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+    // Verifica o tipo de leitor biométrico selecionado
+    switch (tipoLeitorBiometrico) {
+      case "Digital Persona V2":
+        payload = {
+          Descricao: "Digital Persona V2",
+          Tipo: 2, // Tipo 2 para leitor biométrico
+          ModeloCatraca: null,
+          ModeloLeitorBiometria: 2, // Modelo específico para Digital Persona V2
+          ModeloImpressora: null,
+          ModeloReconhecimentoFacial: null,
+          ModeloTeclado: null,
+          DigitalPersonaUAreU: {
+            Driver: 2, // Driver específico para Digital Persona V2
+          },
+        };
+        break;
 
-        if (!response.ok) {
-          throw new Error("Erro ao criar leitor biométrico");
+      case "Futronic":
+        payload = {
+          Descricao: "Futronic",
+          Tipo: 2, // Tipo 2 para leitor biométrico
+          ModeloCatraca: null,
+          ModeloLeitorBiometria: 1, // Modelo específico para Futronic
+          ModeloImpressora: null,
+          ModeloReconhecimentoFacial: null,
+          ModeloTeclado: null,
+          FS80H: {
+            UtilizaImpressaoTreino: false, // Configuração específica para Futronic
+          },
+        };
+        break;
+
+      default:
+        enqueueSnackbar("Tipo de leitor biométrico não suportado.", {
+          variant: "warning",
+        });
+        return;
+    }
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/equipamento",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         }
+      );
 
-        enqueueSnackbar("Leitor biométrico criado com sucesso!", {
-          variant: "success",
-        });
-
-        setModalLeitorBiometricoOpen(false);
-        setTipoLeitorBiometrico("");
-
-        await buscarEquipamentosCadastroSelecionado();
-      } catch (error) {
-        console.error("Erro ao criar leitor biométrico:", error);
-        enqueueSnackbar("Erro ao criar leitor biométrico. Tente novamente.", {
-          variant: "error",
-        });
+      if (!response.ok) {
+        throw new Error("Erro ao criar leitor biométrico");
       }
-    } else {
-      // Lógica para outros tipos de leitores biométricos, se necessário
-      enqueueSnackbar("Tipo de leitor biométrico não suportado.", {
-        variant: "warning",
+
+      enqueueSnackbar("Leitor biométrico criado com sucesso!", {
+        variant: "success",
+      });
+
+      setModalLeitorBiometricoOpen(false);
+      setTipoLeitorBiometrico("");
+
+      await buscarEquipamentosCadastroSelecionado();
+    } catch (error) {
+      console.error("Erro ao criar leitor biométrico:", error);
+      enqueueSnackbar("Erro ao criar leitor biométrico. Tente novamente.", {
+        variant: "error",
       });
     }
   };

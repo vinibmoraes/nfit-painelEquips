@@ -85,6 +85,9 @@ const PageMenuDeAcesso: React.FC = () => {
   const [tipoLeitor, setTipoLeitor] = useState<string>("codigo-barras");
   const [biometriaHabilitada, setBiometriaHabilitada] =
     useState<boolean>(false);
+  const [modalLeitorBiometricoOpen, setModalLeitorBiometricoOpen] =
+    useState(false);
+  const [tipoLeitorBiometrico, setTipoLeitorBiometrico] = useState<string>("");
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -510,7 +513,7 @@ const PageMenuDeAcesso: React.FC = () => {
         setModalCatracaOpen(true);
         break;
       case "leitor":
-        setModalLeitorOpen(true);
+        setModalLeitorBiometricoOpen(true); // Abre o modal de leitor biométrico
         break;
       case "reconhecimento_facial":
         setModalReconhecimentoFacialOpen(true);
@@ -614,7 +617,7 @@ const PageMenuDeAcesso: React.FC = () => {
 
       // Adiciona "c/Facial" à descrição se o tipo de leitor for Wiegand
       if (tipoLeitor === "wiegand") {
-        payload.Descricao += " c/Facial";
+        payload.Descricao = `TopData c/facial | v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`;
       }
     }
 
@@ -656,6 +659,71 @@ const PageMenuDeAcesso: React.FC = () => {
       console.error("Erro ao criar catraca:", error);
       enqueueSnackbar("Erro ao criar catraca. Tente novamente.", {
         variant: "error",
+      });
+    }
+  };
+
+  const handleCriarLeitorBiometrico = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    if (!tipoLeitorBiometrico) {
+      enqueueSnackbar("Selecione um tipo de leitor biométrico.", {
+        variant: "warning",
+      });
+      return;
+    }
+
+    // Verifica se o tipo selecionado é "Digital Persona V2"
+    if (tipoLeitorBiometrico === "Digital Persona V2") {
+      const payload = {
+        Descricao: "Digital Persona V2",
+        Tipo: 2, // Tipo 2 para leitor biométrico
+        ModeloCatraca: null,
+        ModeloLeitorBiometria: 2, // Modelo específico para Digital Persona V2
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: null,
+        ModeloTeclado: null,
+        DigitalPersonaUAreU: {
+          Driver: 2, // Driver específico para Digital Persona V2
+        },
+      };
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Erro ao criar leitor biométrico");
+        }
+
+        enqueueSnackbar("Leitor biométrico criado com sucesso!", {
+          variant: "success",
+        });
+
+        setModalLeitorBiometricoOpen(false);
+        setTipoLeitorBiometrico("");
+
+        await buscarEquipamentosCadastroSelecionado();
+      } catch (error) {
+        console.error("Erro ao criar leitor biométrico:", error);
+        enqueueSnackbar("Erro ao criar leitor biométrico. Tente novamente.", {
+          variant: "error",
+        });
+      }
+    } else {
+      // Lógica para outros tipos de leitores biométricos, se necessário
+      enqueueSnackbar("Tipo de leitor biométrico não suportado.", {
+        variant: "warning",
       });
     }
   };
@@ -758,7 +826,6 @@ const PageMenuDeAcesso: React.FC = () => {
           )}
         </Typography>
       </Box>
-
       {cadastroSelecionado && usuarios.length > 0 && (
         <Box
           sx={{
@@ -799,7 +866,6 @@ const PageMenuDeAcesso: React.FC = () => {
           </Button>
         </Box>
       )}
-
       <Box
         component="form"
         onSubmit={handleSearchSubmit}
@@ -830,7 +896,6 @@ const PageMenuDeAcesso: React.FC = () => {
           {isSearching ? "Buscando..." : "Buscar"}
         </Button>
       </Box>
-
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <Box
           sx={{
@@ -912,7 +977,6 @@ const PageMenuDeAcesso: React.FC = () => {
           </Box>
         </Box>
       </Modal>
-
       <Box
         sx={{
           display: "flex",
@@ -1231,7 +1295,6 @@ const PageMenuDeAcesso: React.FC = () => {
           </Box>
         </Box>
       </Modal>
-
       <Modal open={modalCatracaOpen} onClose={() => setModalCatracaOpen(false)}>
         <Box
           sx={{
@@ -1272,10 +1335,20 @@ const PageMenuDeAcesso: React.FC = () => {
             </Select>
           </FormControl>
 
+          {/* Campo de descrição (visível apenas para a catraca Fake) */}
+          {modeloCatraca === "Fake" && (
+            <TextField
+              label="Descrição"
+              fullWidth
+              value={descricaoCatraca}
+              onChange={(e) => setDescricaoCatraca(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+          )}
+
           {/* Campos específicos para a catraca TopData */}
           {modeloCatraca === "TopData" && (
             <>
-              {/* Campos existentes (versão, IP do servidor, IP do inner, etc.) */}
               <TextField
                 label="Versão"
                 fullWidth
@@ -1322,10 +1395,11 @@ const PageMenuDeAcesso: React.FC = () => {
                   onChange={(e) => setTipoLeitor(e.target.value as string)}
                 >
                   <MenuItem value="codigo-barras">Código de Barras</MenuItem>
-                  <MenuItem value="wiegand">Wiegand</MenuItem>
+                  <MenuItem value="wiegand">
+                    Prox. Wiegand FC Sem Separador
+                  </MenuItem>
                 </Select>
               </FormControl>
-              {/* Novo campo para habilitar/desabilitar biometria */}
               <FormControlLabel
                 control={
                   <Checkbox
@@ -1348,6 +1422,120 @@ const PageMenuDeAcesso: React.FC = () => {
               Cancelar
             </Button>
             <Button variant="contained" onClick={handleCriarCatraca}>
+              Criar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      <Modal
+        open={modalLeitorBiometricoOpen}
+        onClose={() => setModalLeitorBiometricoOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Criar Leitor Biométrico
+          </Typography>
+
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="tipo-leitor-biometrico-label">
+              Tipo de Leitor Biométrico
+            </InputLabel>
+            <Select
+              labelId="tipo-leitor-biometrico-label"
+              id="tipo-leitor-biometrico"
+              value={tipoLeitorBiometrico}
+              label="Tipo de Leitor Biométrico"
+              onChange={(e) =>
+                setTipoLeitorBiometrico(e.target.value as string)
+              }
+            >
+              <MenuItem value="Digital Persona V2">Digital Persona V2</MenuItem>
+              <MenuItem value="Futronic">Futronic</MenuItem>
+              <MenuItem value="Hamster DX">Hamster DX</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalLeitorBiometricoOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleCriarLeitorBiometrico}>
+              Criar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+      <Modal
+        open={modalLeitorBiometricoOpen}
+        onClose={() => setModalLeitorBiometricoOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Criar Leitor Biométrico
+          </Typography>
+
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="tipo-leitor-biometrico-label">
+              Tipo de Leitor Biométrico
+            </InputLabel>
+            <Select
+              labelId="tipo-leitor-biometrico-label"
+              id="tipo-leitor-biometrico"
+              value={tipoLeitorBiometrico}
+              label="Tipo de Leitor Biométrico"
+              onChange={(e) =>
+                setTipoLeitorBiometrico(e.target.value as string)
+              }
+            >
+              <MenuItem value="Digital Persona V2">Digital Persona V2</MenuItem>
+              <MenuItem value="Futronic">Futronic</MenuItem>
+              <MenuItem value="Hamster DX">Hamster DX</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalLeitorBiometricoOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleCriarLeitorBiometrico}>
               Criar
             </Button>
           </Box>

@@ -102,6 +102,61 @@ const PageMenuDeAcesso: React.FC = () => {
   const [giroHenry7x, setGiroHenry7x] = useState<string>("entrada");
   const [modoLeituraHenry7x, setModoLeituraHenry7x] =
     useState<string>("teclado-biometria");
+  const [ipHenry8x, setIpHenry8x] = useState<string>("");
+  const [sentidoHenry8x, setSentidoHenry8x] = useState<string>("horario");
+  const [giroHenry8x, setGiroHenry8x] = useState<string>("entrada");
+  const [nomeSerialGenerica, setNomeSerialGenerica] = useState<string>("");
+  const [portaComSerialGenerica, setPortaComSerialGenerica] =
+    useState<string>("");
+  const [sentidoSerialGenerica, setSentidoSerialGenerica] =
+    useState<string>("horario");
+  const [giroSerialGenerica, setGiroSerialGenerica] =
+    useState<string>("entrada");
+  const [rtsSerialGenerica, setRtsSerialGenerica] = useState<boolean>(true);
+  const [dtrSerialGenerica, setDtrSerialGenerica] = useState<boolean>(true);
+  const [ipIdBlockEnterprise, setIpIdBlockEnterprise] = useState<string>("");
+  const [sentidoIdBlockEnterprise, setSentidoIdBlockEnterprise] =
+    useState<string>("horario");
+  const [giroIdBlockEnterprise, setGiroIdBlockEnterprise] =
+    useState<string>("entrada");
+  const [ipIdBlockModoPro, setIpIdBlockModoPro] = useState<string>("");
+  const [sentidoIdBlockModoPro, setSentidoIdBlockModoPro] =
+    useState<string>("horario");
+  const [giroIdBlockModoPro, setGiroIdBlockModoPro] =
+    useState<string>("entrada");
+  const [ipProveuTupa, setIpProveuTupa] = useState<string>("");
+  const [sentidoProveuTupa, setSentidoProveuTupa] = useState<string>("horario");
+  const [giroProveuTupa, setGiroProveuTupa] = useState<string>("entrada");
+  const [tipoComunicacaoTecnibra, setTipoComunicacaoTecnibra] =
+    useState<string>("tcpip");
+  const [ipTecnibra, setIpTecnibra] = useState<string>("");
+  const [portaComTecnibra, setPortaComTecnibra] = useState<string>("");
+  const [sentidoTecnibra, setSentidoTecnibra] = useState<string>("horario");
+  const [giroTecnibra, setGiroTecnibra] = useState<string>("entrada");
+  const [autenticacaoTecladoTecnibra, setAutenticacaoTecladoTecnibra] =
+    useState<boolean>(true);
+  const [autenticacaoBiometriaTecnibra, setAutenticacaoBiometriaTecnibra] =
+    useState<boolean>(true);
+  const [autenticacaoTecladoIdBlock, setAutenticacaoTecladoIdBlock] =
+    useState<boolean>(false);
+  const [autenticacaoBiometriaIdBlock, setAutenticacaoBiometriaIdBlock] =
+    useState<boolean>(false);
+  const [autenticacaoFacialIdBlock, setAutenticacaoFacialIdBlock] =
+    useState<boolean>(false);
+  const [descricaoImpressora, setDescricaoImpressora] = useState<string>("");
+  const [tipoFacial, setTipoFacial] = useState("");
+  const [ipIDFace, setIpIDFace] = useState("");
+  const [criarCatracaDependente, setCriarCatracaDependente] = useState(false);
+  const [nomeCameraPrincipal, setNomeCameraPrincipal] = useState<string>("");
+  const [tamanhoMinimoFace, setTamanhoMinimoFace] = useState<number>(100);
+  const [utilizarOutraCameraParaCadastro, setUtilizarOutraCameraParaCadastro] =
+    useState<boolean>(false);
+  const [ipHikvision, setIpHikvision] = useState<string>("");
+  const [portaHttpHikvision, setPortaHttpHikvision] = useState<string>("80");
+  const [portaServidorHikvision, setPortaServidorHikvision] =
+    useState<string>("8000");
+  const [usuarioHikvision, setUsuarioHikvision] = useState<string>("");
+  const [senhaHikvision, setSenhaHikvision] = useState<string>("");
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -727,9 +782,213 @@ const PageMenuDeAcesso: React.FC = () => {
           TempoLiberacaoSegundos: 3, // Fixo
         },
       };
-    }
+    } else if (modeloCatraca === "Henry 8x") {
+      // Validação dos campos obrigatórios
+      if (!ipHenry8x) {
+        enqueueSnackbar("Preencha o IP da catraca.", {
+          variant: "warning",
+        });
+        return;
+      }
 
-    console.log("Payload enviado:", payload); // Depuração
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoHenry8x === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroHenry8x === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+
+      // Payload para a Henry 8x
+      payload = {
+        Descricao: `Henry 8x WebServer: ${ipHenry8x}`, // Descrição com o IP
+        Tipo: 1, // Fixo
+        ModeloCatraca: 8, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        Henry8X: {
+          Ip: ipHenry8x, // Preenchido pelo usuário
+          Porta: "3000", // Fixo
+          ModeloPlaca: 1, // Fixo
+          Giro: giro, // Preenchido pelo usuário
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          QuantidadeDigitos: 4, // Fixo
+          TempoLiberacaoSegundos: 5, // Fixo
+          ModeloBiometria: 1, // Fixo
+        },
+      };
+    } else if (modeloCatraca === "Serial Genérica") {
+      // Validação dos campos obrigatórios
+      if (!nomeSerialGenerica || !portaComSerialGenerica) {
+        enqueueSnackbar("Preencha todos os campos obrigatórios.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoSerialGenerica === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroSerialGenerica === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+
+      // Payload para a Serial Genérica
+      payload = {
+        Descricao: nomeSerialGenerica, // Nome do equipamento
+        Tipo: 1, // Fixo
+        ModeloCatraca: 9, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        SerialGenerica: {
+          PortaCom: portaComSerialGenerica, // Preenchido pelo usuário
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          QuantidadeDigitos: 4, // Fixo
+          Giro: giro, // Preenchido pelo usuário
+          TempoLiberacaoSegundos: 3, // Fixo
+          Rts: rtsSerialGenerica, // Preenchido pelo usuário
+          Dtr: dtrSerialGenerica, // Preenchido pelo usuário
+        },
+      };
+    } else if (modeloCatraca === "iD Block Enterprise") {
+      // Validação dos campos obrigatórios
+      if (!ipIdBlockEnterprise) {
+        enqueueSnackbar("Preencha o IP da catraca.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoIdBlockEnterprise === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroIdBlockEnterprise === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+
+      // Payload para a iD Block Enterprise
+      payload = {
+        Descricao: `iD Block Enterprise - ${ipIdBlockEnterprise}`, // Descrição com o IP
+        Tipo: 1, // Fixo
+        ModeloCatraca: 2, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        IdBlock: {
+          Ip: ipIdBlockEnterprise, // Preenchido pelo usuário
+          Porta: "80", // Fixo
+          Usuario: "admin", // Fixo
+          Senha: "admin", // Fixo
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          Giro: giro, // Preenchido pelo usuário
+        },
+      };
+    } else if (modeloCatraca === "iD Block Modo Pro") {
+      // Validação dos campos obrigatórios
+      if (!ipIdBlockModoPro) {
+        enqueueSnackbar("Preencha o IP da catraca.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoIdBlockModoPro === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroIdBlockModoPro === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+
+      // Payload para a iD Block Modo Pro
+      payload = {
+        Descricao: `iD Block Next - Modo Pro - ${ipIdBlockModoPro}`, // Descrição com o IP
+        Tipo: 1, // Fixo
+        ModeloCatraca: 26, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        IdBlockV2: {
+          Ip: ipIdBlockModoPro, // Preenchido pelo usuário
+          PortaServidorLocal: "8081", // Fixo
+          Facial: autenticacaoFacialIdBlock, // Preenchido pelo usuário
+          Teclado: autenticacaoTecladoIdBlock, // Preenchido pelo usuário
+          Biometria: autenticacaoBiometriaIdBlock, // Preenchido pelo usuário
+          FormaLiberacao: 1, // Fixo
+          Giro: giro, // Preenchido pelo usuário
+          Modelo: 2, // Fixo
+          Senha: "admin", // Fixo
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          TempoLiberacaoSegundos: 3, // Fixo
+          Usuario: "admin", // Fixo
+        },
+      };
+    } else if (modeloCatraca === "Proveu Tupã") {
+      // Validação dos campos obrigatórios
+      if (!ipProveuTupa) {
+        enqueueSnackbar("Preencha o IP da catraca.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoProveuTupa === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroProveuTupa === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+
+      // Payload para a Proveu Tupã
+      payload = {
+        Descricao: "Proveu Tupã", // Fixo
+        Tipo: 1, // Fixo
+        ModeloCatraca: 11, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        ProveuTupa: {
+          Ip: ipProveuTupa, // Preenchido pelo usuário
+          Porta: "5151", // Fixo
+          QuantidadeDigitos: 4, // Fixo
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          Codigo: "0001", // Fixo
+          Giro: giro, // Preenchido pelo usuário
+          TempoLiberacaoSegundos: 5, // Fixo
+        },
+      };
+    } else if (modeloCatraca === "Tecnibra TCA IHM") {
+      // Validação dos campos obrigatórios
+      if (
+        (tipoComunicacaoTecnibra === "tcpip" && !ipTecnibra) ||
+        (tipoComunicacaoTecnibra === "serial" && !portaComTecnibra)
+      ) {
+        enqueueSnackbar("Preencha todos os campos obrigatórios.", {
+          variant: "warning",
+        });
+        return;
+      }
+
+      // Mapeamento dos valores do formulário
+      const sentido = sentidoTecnibra === "horario" ? 1 : 2; // 1 para horário, 2 para anti-horário
+      const giro = giroTecnibra === "entrada" ? 2 : 4; // 2 para entrada, 4 para entrada e saída
+      const tipoComunicacao = tipoComunicacaoTecnibra === "tcpip" ? 1 : 2; // 1 para TCP/IP, 2 para Serial
+
+      // Payload para a Tecnibra
+      payload = {
+        Descricao: "Tecnibra", // Fixo
+        Tipo: 1, // Fixo
+        ModeloCatraca: 7, // Fixo
+        ModeloLeitorBiometria: null, // Fixo
+        ModeloImpressora: null, // Fixo
+        ModeloReconhecimentoFacial: null, // Fixo
+        ModeloTeclado: null, // Fixo
+        TecnibraTcaIhm: {
+          TipoComunicacao: tipoComunicacao, // Preenchido pelo usuário
+          Codigo: "1", // Fixo
+          Senha: "123456", // Fixo
+          TempoLiberacaoSegundos: 3, // Fixo
+          QuantidadeDigitos: 4, // Fixo
+          SentidoCatraca: sentido, // Preenchido pelo usuário
+          Giro: giro, // Preenchido pelo usuário
+          UtilizaTeclado: autenticacaoTecladoTecnibra, // Preenchido pelo usuário
+          UtilizaBiometria: autenticacaoBiometriaTecnibra, // Preenchido pelo usuário
+          ...(tipoComunicacao === 1
+            ? { Ip: ipTecnibra } // Adiciona o campo Ip apenas para TCP/IP
+            : { PortaCom: portaComTecnibra }), // Adiciona o campo PortaCom apenas para Serial
+        },
+      };
+    }
 
     try {
       const response = await fetch(
@@ -770,6 +1029,34 @@ const PageMenuDeAcesso: React.FC = () => {
       setSentidoHenry7x("horario");
       setGiroHenry7x("entrada");
       setModoLeituraHenry7x("teclado-biometria");
+      setIpHenry8x("");
+      setSentidoHenry8x("horario");
+      setGiroHenry8x("entrada");
+      setNomeSerialGenerica("");
+      setPortaComSerialGenerica("");
+      setSentidoSerialGenerica("horario");
+      setGiroSerialGenerica("entrada");
+      setRtsSerialGenerica(true);
+      setDtrSerialGenerica(true);
+      setIpIdBlockEnterprise("");
+      setSentidoIdBlockEnterprise("horario");
+      setGiroIdBlockEnterprise("entrada");
+      setIpIdBlockModoPro("");
+      setSentidoIdBlockModoPro("horario");
+      setGiroIdBlockModoPro("entrada");
+      setIpProveuTupa("");
+      setSentidoProveuTupa("horario");
+      setGiroProveuTupa("entrada");
+      setTipoComunicacaoTecnibra("tcpip");
+      setIpTecnibra("");
+      setPortaComTecnibra("");
+      setSentidoTecnibra("horario");
+      setGiroTecnibra("entrada");
+      setAutenticacaoTecladoTecnibra(true);
+      setAutenticacaoBiometriaTecnibra(true);
+      setAutenticacaoTecladoIdBlock(false);
+      setAutenticacaoBiometriaIdBlock(false);
+      setAutenticacaoFacialIdBlock(false);
 
       // Atualiza a lista de equipamentos
       await buscarEquipamentosCadastroSelecionado();
@@ -925,6 +1212,260 @@ const PageMenuDeAcesso: React.FC = () => {
         variant: "error",
       });
       return null;
+    }
+  };
+
+  const handleCriarImpressora = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    // Validação dos campos obrigatórios
+    if (!descricaoImpressora) {
+      enqueueSnackbar("Preencha a descrição da impressora.", {
+        variant: "warning",
+      });
+      return;
+    }
+
+    // Payload para a impressora
+    const payload = {
+      Descricao: descricaoImpressora, // Preenchido pelo usuário
+      Tipo: 3, // Fixo
+      ModeloCatraca: null, // Fixo
+      ModeloLeitorBiometria: null, // Fixo
+      ModeloImpressora: 1, // Fixo
+      ModeloReconhecimentoFacial: null, // Fixo
+      ModeloTeclado: null, // Fixo
+    };
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/equipamento",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao criar impressora");
+      }
+
+      enqueueSnackbar("Impressora criada com sucesso!", {
+        variant: "success",
+      });
+
+      // Fecha o modal e reseta o estado
+      setModalImpressoraOpen(false);
+      setDescricaoImpressora("");
+
+      // Atualiza a lista de equipamentos
+      await buscarEquipamentosCadastroSelecionado();
+    } catch (error) {
+      console.error("Erro ao criar impressora:", error);
+      enqueueSnackbar("Erro ao criar impressora. Tente novamente.", {
+        variant: "error",
+      });
+    }
+  };
+
+  const handleCriarFacial = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    if (tipoFacial === "Hikvision") {
+      const payloadHikvision = {
+        Descricao: `Hikvision | IP: ${ipHikvision}`,
+        Tipo: 5,
+        ModeloCatraca: null,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: 3,
+        ModeloTeclado: null,
+        HikvisionFacial: {
+          Ip: ipHikvision,
+          PortaHttp: portaHttpHikvision,
+          PortaServidor: portaServidorHikvision,
+          Usuario: usuarioHikvision,
+          Senha: senhaHikvision,
+        },
+      };
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadHikvision),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Erro ao criar Hikvision Facial");
+        }
+
+        enqueueSnackbar("Hikvision Facial criado com sucesso!", {
+          variant: "success",
+        });
+
+        setModalReconhecimentoFacialOpen(false);
+        setIpHikvision("");
+        setPortaHttpHikvision("80");
+        setPortaServidorHikvision("8000");
+        setUsuarioHikvision("");
+        setSenhaHikvision("");
+        await buscarEquipamentosCadastroSelecionado();
+      } catch (error) {
+        console.error("Erro ao criar Hikvision Facial:", error);
+        enqueueSnackbar("Erro ao criar Hikvision Facial. Tente novamente.", {
+          variant: "error",
+        });
+      }
+    } else if (tipoFacial === "Facial Next Fit") {
+      // Lógica existente para Facial Next Fit
+      const payloadFacialNextFit = {
+        Descricao: "Facial Next Fit",
+        Tipo: 5,
+        ModeloCatraca: null,
+        ModeloLeitorBiometria: null,
+        ModeloImpressora: null,
+        ModeloReconhecimentoFacial: 1,
+        ModeloTeclado: null,
+        RfNextFit: {
+          NomeCameraPrincipal: nomeCameraPrincipal,
+          TamanhoMinimoFace: tamanhoMinimoFace,
+          UtilizarOutraCameraParaCadastro: utilizarOutraCameraParaCadastro,
+          ModoReconhecimentoFacial: 1, // Valor fixo conforme o payload
+        },
+      };
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadFacialNextFit),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Erro ao criar Facial Next Fit");
+        }
+
+        enqueueSnackbar("Facial Next Fit criado com sucesso!", {
+          variant: "success",
+        });
+
+        setModalReconhecimentoFacialOpen(false);
+        setNomeCameraPrincipal("");
+        setTamanhoMinimoFace(100);
+        setUtilizarOutraCameraParaCadastro(false);
+        await buscarEquipamentosCadastroSelecionado();
+      } catch (error) {
+        console.error("Erro ao criar Facial Next Fit:", error);
+        enqueueSnackbar("Erro ao criar Facial Next Fit. Tente novamente.", {
+          variant: "error",
+        });
+      }
+    } else if (tipoFacial === "iDFace") {
+      // Lógica existente para iDFace
+      const payloadIDFace = {
+        Descricao: `iDFace | IP: ${ipIDFace}`,
+        Tipo: 5,
+        ModeloCatraca: null,
+        ModeloImpressora: null,
+        ModeloLeitorBiometria: null,
+        ModeloReconhecimentoFacial: 2,
+        ModeloTeclado: null,
+        IdFace: {
+          Ip: ipIDFace,
+          PortaServidorLocal: "8081",
+          Usuario: "admin",
+          Senha: "admin",
+          FormaLiberacao: criarCatracaDependente ? 1 : 2, // 1 para SecBox, 2 para iDFace
+        },
+      };
+
+      try {
+        const response = await fetch(
+          "https://api.nextfit.com.br/api/equipamento",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadIDFace),
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error("Erro ao criar iDFace");
+        }
+
+        const resposta: RespostaBaseApi<{ Id: number }> = await response.json();
+
+        if (criarCatracaDependente) {
+          const payloadCatracaFake = {
+            Descricao: "Catraca dependente do iDFace",
+            Tipo: 1, // Tipo 1 para catraca
+            ModeloCatraca: 20, // Modelo Fake
+            ModeloLeitorBiometria: null,
+            ModeloImpressora: null,
+            ModeloReconhecimentoFacial: null,
+            ModeloTeclado: null,
+            Fake: {
+              Giro: 2, // Giro padrão
+            },
+            EquipamentoCatraca: {
+              UtilizaReconhecimentoFacial: true,
+              CodigoEquipamentoReconhecimentoFacial: resposta.Content.Id,
+            },
+          };
+
+          const responseCatraca = await fetch(
+            "https://api.nextfit.com.br/api/equipamento",
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(payloadCatracaFake),
+            }
+          );
+
+          if (!responseCatraca.ok) {
+            throw new Error("Erro ao criar catraca dependente");
+          }
+        }
+
+        enqueueSnackbar("iDFace criado com sucesso!", {
+          variant: "success",
+        });
+
+        setModalReconhecimentoFacialOpen(false);
+        setIpIDFace("");
+        setCriarCatracaDependente(false);
+        await buscarEquipamentosCadastroSelecionado();
+      } catch (error) {
+        console.error("Erro ao criar iDFace:", error);
+        enqueueSnackbar("Erro ao criar iDFace. Tente novamente.", {
+          variant: "error",
+        });
+      }
     }
   };
 
@@ -1788,6 +2329,405 @@ const PageMenuDeAcesso: React.FC = () => {
             </>
           )}
 
+          {modeloCatraca === "Henry 8x" && (
+            <>
+              <TextField
+                label="IP da Catraca"
+                fullWidth
+                value={ipHenry8x}
+                onChange={(e) => setIpHenry8x(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-henry8x-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-henry8x-label"
+                  id="sentido-henry8x"
+                  value={sentidoHenry8x}
+                  label="Sentido da Catraca"
+                  onChange={(e) => setSentidoHenry8x(e.target.value as string)}
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-henry8x-label">Giro da Catraca</InputLabel>
+                <Select
+                  labelId="giro-henry8x-label"
+                  id="giro-henry8x"
+                  value={giroHenry8x}
+                  label="Giro da Catraca"
+                  onChange={(e) => setGiroHenry8x(e.target.value as string)}
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {modeloCatraca === "Serial Genérica" && (
+            <>
+              <TextField
+                label="Nome do Equipamento"
+                fullWidth
+                value={nomeSerialGenerica}
+                onChange={(e) => setNomeSerialGenerica(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Porta COM"
+                fullWidth
+                value={portaComSerialGenerica}
+                onChange={(e) => setPortaComSerialGenerica(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-serial-generica-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-serial-generica-label"
+                  id="sentido-serial-generica"
+                  value={sentidoSerialGenerica}
+                  label="Sentido da Catraca"
+                  onChange={(e) =>
+                    setSentidoSerialGenerica(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-serial-generica-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-serial-generica-label"
+                  id="giro-serial-generica"
+                  value={giroSerialGenerica}
+                  label="Giro da Catraca"
+                  onChange={(e) =>
+                    setGiroSerialGenerica(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rtsSerialGenerica}
+                    onChange={(e) => setRtsSerialGenerica(e.target.checked)}
+                  />
+                }
+                label="RTS"
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={dtrSerialGenerica}
+                    onChange={(e) => setDtrSerialGenerica(e.target.checked)}
+                  />
+                }
+                label="DTR"
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
+          {modeloCatraca === "iD Block Enterprise" && (
+            <>
+              <TextField
+                label="IP da Catraca"
+                fullWidth
+                value={ipIdBlockEnterprise}
+                onChange={(e) => setIpIdBlockEnterprise(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-idblock-enterprise-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-idblock-enterprise-label"
+                  id="sentido-idblock-enterprise"
+                  value={sentidoIdBlockEnterprise}
+                  label="Sentido da Catraca"
+                  onChange={(e) =>
+                    setSentidoIdBlockEnterprise(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-idblock-enterprise-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-idblock-enterprise-label"
+                  id="giro-idblock-enterprise"
+                  value={giroIdBlockEnterprise}
+                  label="Giro da Catraca"
+                  onChange={(e) =>
+                    setGiroIdBlockEnterprise(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {modeloCatraca === "iD Block Modo Pro" && (
+            <>
+              {/* Campos existentes (IP, Sentido, Giro) */}
+              <TextField
+                label="IP da Catraca"
+                fullWidth
+                value={ipIdBlockModoPro}
+                onChange={(e) => setIpIdBlockModoPro(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-idblock-modopro-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-idblock-modopro-label"
+                  id="sentido-idblock-modopro"
+                  value={sentidoIdBlockModoPro}
+                  label="Sentido da Catraca"
+                  onChange={(e) =>
+                    setSentidoIdBlockModoPro(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-idblock-modopro-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-idblock-modopro-label"
+                  id="giro-idblock-modopro"
+                  value={giroIdBlockModoPro}
+                  label="Giro da Catraca"
+                  onChange={(e) =>
+                    setGiroIdBlockModoPro(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+
+              {/* Checkboxes para autenticação */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autenticacaoTecladoIdBlock}
+                    onChange={(e) =>
+                      setAutenticacaoTecladoIdBlock(e.target.checked)
+                    }
+                  />
+                }
+                label="Autenticação com Teclado"
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autenticacaoBiometriaIdBlock}
+                    onChange={(e) =>
+                      setAutenticacaoBiometriaIdBlock(e.target.checked)
+                    }
+                  />
+                }
+                label="Autenticação com Biometria"
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autenticacaoFacialIdBlock}
+                    onChange={(e) =>
+                      setAutenticacaoFacialIdBlock(e.target.checked)
+                    }
+                  />
+                }
+                label="Autenticação com Facial"
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+          {modeloCatraca === "Proveu Tupã" && (
+            <>
+              <TextField
+                label="IP da Catraca"
+                fullWidth
+                value={ipProveuTupa}
+                onChange={(e) => setIpProveuTupa(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-proveutupa-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-proveutupa-label"
+                  id="sentido-proveutupa"
+                  value={sentidoProveuTupa}
+                  label="Sentido da Catraca"
+                  onChange={(e) =>
+                    setSentidoProveuTupa(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-proveutupa-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-proveutupa-label"
+                  id="giro-proveutupa"
+                  value={giroProveuTupa}
+                  label="Giro da Catraca"
+                  onChange={(e) => setGiroProveuTupa(e.target.value as string)}
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+            </>
+          )}
+
+          {modeloCatraca === "Tecnibra TCA IHM" && (
+            <>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="tipo-comunicacao-tecnibra-label">
+                  Tipo de Comunicação
+                </InputLabel>
+                <Select
+                  labelId="tipo-comunicacao-tecnibra-label"
+                  id="tipo-comunicacao-tecnibra"
+                  value={tipoComunicacaoTecnibra}
+                  label="Tipo de Comunicação"
+                  onChange={(e) =>
+                    setTipoComunicacaoTecnibra(e.target.value as string)
+                  }
+                >
+                  <MenuItem value="tcpip">TCP/IP</MenuItem>
+                  <MenuItem value="serial">Serial</MenuItem>
+                </Select>
+              </FormControl>
+
+              {tipoComunicacaoTecnibra === "tcpip" && (
+                <TextField
+                  label="IP da Catraca"
+                  fullWidth
+                  value={ipTecnibra}
+                  onChange={(e) => setIpTecnibra(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+              )}
+
+              {tipoComunicacaoTecnibra === "serial" && (
+                <TextField
+                  label="Porta COM"
+                  fullWidth
+                  value={portaComTecnibra}
+                  onChange={(e) => setPortaComTecnibra(e.target.value)}
+                  sx={{ mb: 2 }}
+                />
+              )}
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="sentido-tecnibra-label">
+                  Sentido da Catraca
+                </InputLabel>
+                <Select
+                  labelId="sentido-tecnibra-label"
+                  id="sentido-tecnibra"
+                  value={sentidoTecnibra}
+                  label="Sentido da Catraca"
+                  onChange={(e) => setSentidoTecnibra(e.target.value as string)}
+                >
+                  <MenuItem value="horario">Horário</MenuItem>
+                  <MenuItem value="anti-horario">Anti-Horário</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="giro-tecnibra-label">
+                  Giro da Catraca
+                </InputLabel>
+                <Select
+                  labelId="giro-tecnibra-label"
+                  id="giro-tecnibra"
+                  value={giroTecnibra}
+                  label="Giro da Catraca"
+                  onChange={(e) => setGiroTecnibra(e.target.value as string)}
+                >
+                  <MenuItem value="entrada">Controla Entrada</MenuItem>
+                  <MenuItem value="entrada-saida">
+                    Controla Entrada e Saída
+                  </MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autenticacaoTecladoTecnibra}
+                    onChange={(e) =>
+                      setAutenticacaoTecladoTecnibra(e.target.checked)
+                    }
+                  />
+                }
+                label="Autenticação com Teclado"
+                sx={{ mb: 2 }}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={autenticacaoBiometriaTecnibra}
+                    onChange={(e) =>
+                      setAutenticacaoBiometriaTecnibra(e.target.checked)
+                    }
+                  />
+                }
+                label="Autenticação com Biometria"
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
           {/* Botões de Ação */}
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
             <Button
@@ -1911,6 +2851,186 @@ const PageMenuDeAcesso: React.FC = () => {
               Cancelar
             </Button>
             <Button variant="contained" onClick={handleCriarLeitorBiometrico}>
+              Criar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      {/* Modal de criação de reconhecimento facial */}
+      <Modal
+        open={modalReconhecimentoFacialOpen}
+        onClose={() => setModalReconhecimentoFacialOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Criar Reconhecimento Facial
+          </Typography>
+
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="tipo-facial-label">Tipo de Facial</InputLabel>
+            <Select
+              labelId="tipo-facial-label"
+              id="tipo-facial"
+              value={tipoFacial}
+              label="Tipo de Facial"
+              onChange={(e) => setTipoFacial(e.target.value as string)}
+            >
+              <MenuItem value="Facial Next Fit">Facial Next Fit</MenuItem>
+              <MenuItem value="iDFace">iDFace</MenuItem>
+              <MenuItem value="Hikvision">Hikvision</MenuItem>
+            </Select>
+          </FormControl>
+
+          {tipoFacial === "Hikvision" && (
+            <>
+              <TextField
+                label="IP do Facial"
+                fullWidth
+                value={ipHikvision}
+                onChange={(e) => setIpHikvision(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Porta HTTP"
+                fullWidth
+                value={portaHttpHikvision}
+                onChange={(e) => setPortaHttpHikvision(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Porta do Servidor"
+                fullWidth
+                value={portaServidorHikvision}
+                onChange={(e) => setPortaServidorHikvision(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Usuário"
+                fullWidth
+                type="string"
+                value={usuarioHikvision}
+                onChange={(e) => setUsuarioHikvision(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                label="Senha"
+                fullWidth
+                type="string"
+                value={senhaHikvision}
+                onChange={(e) => setSenhaHikvision(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
+          {tipoFacial === "iDFace" && (
+            <>
+              <TextField
+                label="IP do iDFace"
+                fullWidth
+                value={ipIDFace}
+                onChange={(e) => setIpIDFace(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={criarCatracaDependente}
+                    onChange={(e) =>
+                      setCriarCatracaDependente(e.target.checked)
+                    }
+                  />
+                }
+                label="Criar catraca dependente"
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
+          {tipoFacial === "Facial Next Fit" && (
+            <>
+              <TextField
+                label="Nome da Câmera Principal"
+                fullWidth
+                value={nomeCameraPrincipal}
+                onChange={(e) => setNomeCameraPrincipal(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+            </>
+          )}
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalReconhecimentoFacialOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleCriarFacial}>
+              Criar
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={modalImpressoraOpen}
+        onClose={() => setModalImpressoraOpen(false)} // Fecha o modal ao clicar fora ou pressionar Esc
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Criar Impressora
+          </Typography>
+
+          <TextField
+            label="Descrição da Impressora"
+            fullWidth
+            value={descricaoImpressora}
+            onChange={(e) => setDescricaoImpressora(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalImpressoraOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={handleCriarImpressora}>
               Criar
             </Button>
           </Box>

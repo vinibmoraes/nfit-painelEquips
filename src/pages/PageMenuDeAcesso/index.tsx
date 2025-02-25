@@ -157,6 +157,11 @@ const PageMenuDeAcesso: React.FC = () => {
     useState<string>("8000");
   const [usuarioHikvision, setUsuarioHikvision] = useState<string>("");
   const [senhaHikvision, setSenhaHikvision] = useState<string>("");
+  const [modalObservacaoOpen, setModalObservacaoOpen] = useState(false);
+  const [tipoObservacao, setTipoObservacao] = useState<
+    "semPredefinicao" | "instalacao" | null
+  >(null);
+  const [observacaoTexto, setObservacaoTexto] = useState("");
 
   const buscarCadastros = async () => {
     setIsSearching(true);
@@ -1469,6 +1474,72 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
+  const handleCriarObservacao = async () => {
+    const refreshToken = LocalStorageHelper.getItem<string>(keyRefreshToken);
+
+    if (!refreshToken) {
+      enqueueSnackbar("Token de autenticação não encontrado.", {
+        variant: "error",
+      });
+      return;
+    }
+
+    if (!cadastroSelecionado) {
+      enqueueSnackbar("Nenhum cadastro selecionado.", {
+        variant: "error",
+      });
+      return;
+    }
+
+    const payload = {
+      CodigoCadastro: cadastroSelecionado.Id.toString(),
+      Tipo: 5, // Tipo de observação (ajuste conforme necessário)
+      Observacao: observacaoTexto, // Usa o texto do textarea, que pode ter sido editado
+    };
+
+    try {
+      const response = await fetch(
+        "https://apiadm.nextfit.com.br/api/CadastroObservacao",
+        getOptions(EVerboHttp.POST, payload, refreshToken)
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao criar observação");
+      }
+
+      enqueueSnackbar("Observação criada com sucesso!", {
+        variant: "success",
+      });
+
+      setModalObservacaoOpen(false);
+      setTipoObservacao(null);
+      setObservacaoTexto("");
+    } catch (error) {
+      console.error("Erro ao criar observação:", error);
+      enqueueSnackbar("Erro ao criar observação. Tente novamente.", {
+        variant: "error",
+      });
+    }
+  };
+
+  const handleSelecionarTipoObservacao = (
+    tipo: "semPredefinicao" | "instalacao"
+  ) => {
+    setTipoObservacao(tipo);
+
+    if (tipo === "instalacao") {
+      // Preenche o textarea com o texto padrão
+      const equipamentosInstalados = equipamentos
+        .map((e) => e.Descricao)
+        .join(", ");
+      const textoPadrao = `Instalação de equipamento(s) concluída com sucesso.\nEquipamento(s) instalado(s):\n${equipamentosInstalados}`;
+      setObservacaoTexto(textoPadrao);
+    } else {
+      // Limpa o textarea para observação sem predefinição
+      setObservacaoTexto("");
+    }
+  };
+
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Box
@@ -1595,6 +1666,7 @@ const PageMenuDeAcesso: React.FC = () => {
           </Button>
           <Button
             variant="contained"
+            onClick={() => setModalObservacaoOpen(true)}
             sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
           >
             Adicionar observação
@@ -3034,6 +3106,80 @@ const PageMenuDeAcesso: React.FC = () => {
               Criar
             </Button>
           </Box>
+        </Box>
+      </Modal>
+
+      <Modal
+        open={modalObservacaoOpen}
+        onClose={() => setModalObservacaoOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Adicionar Observação
+          </Typography>
+
+          {tipoObservacao === null ? (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Button
+                variant="contained"
+                onClick={() =>
+                  handleSelecionarTipoObservacao("semPredefinicao")
+                }
+              >
+                Observação sem predefinição
+              </Button>
+              <Button
+                variant="contained"
+                onClick={() => handleSelecionarTipoObservacao("instalacao")}
+              >
+                Observação de instalação
+              </Button>
+            </Box>
+          ) : (
+            <>
+              <TextField
+                label="Observação"
+                fullWidth
+                multiline
+                rows={4}
+                value={observacaoTexto}
+                onChange={(e) => setObservacaoTexto(e.target.value)} // Permite edição do texto
+                sx={{ mb: 2 }}
+              />
+              <Box
+                sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}
+              >
+                <Button
+                  variant="outlined"
+                  onClick={() => {
+                    setTipoObservacao(null);
+                    setObservacaoTexto("");
+                  }}
+                >
+                  Voltar
+                </Button>
+                <Button variant="contained" onClick={handleCriarObservacao}>
+                  Salvar
+                </Button>
+              </Box>
+            </>
+          )}
         </Box>
       </Modal>
 

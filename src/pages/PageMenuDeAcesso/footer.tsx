@@ -30,56 +30,67 @@ const Footer: React.FC = () => {
         padding: "10px",
         zIndex: 1000,
         display: "flex",
+        justifyContent: "space-between", // Distribute items with space between
         alignItems: "center",
-        justifyContent: "center",
-        gap: "10px", // Espaço entre o ícone e o texto
       }}
     >
-      {/* Ícone de Mapa */}
-      <Tooltip title="Acessar Mapa de parceiros">
-        <IconButton
-          onClick={handleMapClick}
-          sx={{
-            position: "absolute",
-            left: "16px",
-            backgroundColor: "#ffffff",
-            borderRadius: "50%",
-            boxShadow: 3,
-            width: "32px", // Tamanho reduzido do botão
-            height: "32px", // Tamanho reduzido do botão
-            "&:hover": {
-              backgroundColor: "#e0e0e0",
-            },
-          }}
-        >
-          <MapIcon sx={{ color: "#1976d2" }} />
-        </IconButton>
-      </Tooltip>
+      {/* Ícones à esquerda */}
+      <Box sx={{ display: "flex", gap: "10px" }}>
+        {/* Ícone de Mapa */}
+        <Tooltip title="Acessar Mapa de parceiros">
+          <IconButton
+            onClick={handleMapClick}
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "50%",
+              boxShadow: 3,
+              width: "32px",
+              height: "32px",
+              "&:hover": {
+                backgroundColor: "#e0e0e0",
+              },
+            }}
+          >
+            <MapIcon sx={{ color: "#1976d2" }} />
+          </IconButton>
+        </Tooltip>
 
-      {/* Ícone de Casa ao lado do ícone de Mapa */}
-      <Tooltip title="Acessar Home dos equipamentos">
-        <IconButton
-          onClick={handleHomeClick}
-          sx={{
-            position: "absolute",
-            left: "64px", // Ajuste a distância para ficar ao lado do ícone de mapa
-            backgroundColor: "#ffffff",
-            borderRadius: "50%",
-            boxShadow: 3,
-            width: "32px", // Tamanho reduzido do botão
-            height: "32px", // Tamanho reduzido do botão
-            "&:hover": {
-              backgroundColor: "#e0e0e0",
-            },
-          }}
-        >
-          <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
-        </IconButton>
-      </Tooltip>
+        {/* Ícone de Casa */}
+        <Tooltip title="Acessar Home dos equipamentos">
+          <IconButton
+            onClick={handleHomeClick}
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "50%",
+              boxShadow: 3,
+              width: "32px",
+              height: "32px",
+              "&:hover": {
+                backgroundColor: "#e0e0e0",
+              },
+            }}
+          >
+            <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
 
-      {/* Texto do rodapé */}
-      <Typography variant="body2" color="textSecondary">
+      {/* Texto centralizado */}
+      <Typography
+        variant="body2"
+        color="textSecondary"
+        sx={{ textAlign: "center", flexGrow: 1 }} // Centraliza o texto
+      >
         © {new Date().getFullYear()} Next Fit. Time de equipamentos.
+      </Typography>
+
+      {/* Versão beta alinhada à direita */}
+      <Typography
+        variant="body2"
+        color="textSecondary"
+        sx={{ textAlign: "right" }}
+      >
+        versão beta 1.0
       </Typography>
     </Box>
   );

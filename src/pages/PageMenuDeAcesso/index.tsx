@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   LoginInternoDto,
@@ -162,6 +163,23 @@ const PageMenuDeAcesso: React.FC = () => {
     "semPredefinicao" | "instalacao" | null
   >(null);
   const [observacaoTexto, setObservacaoTexto] = useState("");
+
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // Verifica se o refreshToken está presente no LocalStorage
+    const refreshToken = LocalStorageHelper.getItem<string>(keyRefreshToken);
+
+    if (!refreshToken) {
+      // Se o refreshToken não existir, redireciona para a tela de login
+      navigate("/pageLogin");
+    }
+  }, [navigate]);
+
+  const expiresAt = new Date(localStorage.getItem("expires_at") || "");
+  if (new Date() > expiresAt) {
+    navigate("/pageLogin");
+  }
 
   const buscarCadastros = async () => {
     setIsSearching(true);

@@ -199,6 +199,7 @@ const PageMenuDeAcesso: React.FC = () => {
       console.error("Erro ao buscar bases:", error);
     } finally {
       setIsSearching(false);
+      setEmail("");
     }
   };
 

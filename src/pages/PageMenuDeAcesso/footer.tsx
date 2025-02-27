@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import MapIcon from "@mui/icons-material/Map";
 import HomeIcon from "@mui/icons-material/Home";
 import { IconButton, Tooltip } from "@mui/material";
+import EventIcon from "@mui/icons-material/Event";
 
 const Footer: React.FC = () => {
   const handleMapClick = () => {
@@ -16,6 +17,10 @@ const Footer: React.FC = () => {
       "https://www.notion.so/H-O-M-E-Equipamentos-9608fdc443a64c0790e6a3945d02a930",
       "_blank"
     );
+  };
+
+  const handleScheduleClick = () => {
+    window.open("https://calendar.google.com/calendar/u/0/r?pli=1", "_blank");
   };
 
   return (
@@ -71,6 +76,25 @@ const Footer: React.FC = () => {
             }}
           >
             <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
+          </IconButton>
+        </Tooltip>
+
+        {/* Ícone de Agenda */}
+        <Tooltip title="Acessar Agenda">
+          <IconButton
+            onClick={handleScheduleClick}
+            sx={{
+              backgroundColor: "#ffffff",
+              borderRadius: "50%",
+              boxShadow: 3,
+              width: "32px",
+              height: "32px",
+              "&:hover": {
+                backgroundColor: "#e0e0e0",
+              },
+            }}
+          >
+            <EventIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
           </IconButton>
         </Tooltip>
       </Box>

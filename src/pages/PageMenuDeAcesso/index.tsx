@@ -672,9 +672,15 @@ const PageMenuDeAcesso: React.FC = () => {
         },
       };
     } else if (modeloCatraca === "TopData") {
+      // Verifica se o tipo de leitor é "Prox. Wiegand FC Sem Separador" (tipoLeitor === 6)
+      const descricao =
+        tipoLeitor === "wiegand"
+          ? `TopData c/facial v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`
+          : `TopData v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`;
+
       // Payload para catraca TopData
       payload = {
-        Descricao: `TopData v: ${versaoTopData} Servidor: ${ipServidorTopData} Inner: ${ipInnerTopData}`,
+        Descricao: descricao,
         Tipo: 1,
         ModeloCatraca: 1,
         ModeloLeitorBiometria: null,

@@ -163,6 +163,8 @@ const PageMenuDeAcesso: React.FC = () => {
     "semPredefinicao" | "instalacao" | null
   >(null);
   const [observacaoTexto, setObservacaoTexto] = useState("");
+  const [habilitarControleImpressao, setHabilitarControleImpressao] =
+    useState(false);
 
   const navigate = useNavigate();
 
@@ -726,7 +728,7 @@ const PageMenuDeAcesso: React.FC = () => {
         ModeloTeclado: null,
         ActuarSmart: {
           ModoIp: 1,
-          Giro: giroCatraca === "entrada" ? 1 : 2, // 1 para entrada, 2 para entrada e saída
+          Giro: giroCatraca === "entrada" ? 2 : 4, // 2 para entrada, 4 para entrada e saída
           SentidoCatraca: sentidoCatraca === "horario" ? 1 : 2, // 1 para horário, 2 para anti-horário
           UtilizaLeitorBiometricoExternoValidacao: true,
           CodigoLeitorBiometricoExternoValidacao: codigoLeitorBiometrico,
@@ -1302,6 +1304,8 @@ const PageMenuDeAcesso: React.FC = () => {
       });
     }
   };
+
+  //
 
   const handleCriarFacial = async () => {
     const authToken =
@@ -3118,6 +3122,18 @@ const PageMenuDeAcesso: React.FC = () => {
             value={descricaoImpressora}
             onChange={(e) => setDescricaoImpressora(e.target.value)}
             sx={{ mb: 2 }}
+          />
+
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={habilitarControleImpressao}
+                onChange={(e) =>
+                  setHabilitarControleImpressao(e.target.checked)
+                }
+              />
+            }
+            label="Habilitar Controle de Impressão"
           />
 
           <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>

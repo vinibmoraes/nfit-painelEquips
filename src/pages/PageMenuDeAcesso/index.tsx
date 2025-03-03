@@ -1260,65 +1260,20 @@ const PageMenuDeAcesso: React.FC = () => {
     }
 
     try {
-      let catracaFakeId = null;
-      let impressoraPayload;
+      let impressoraId: number | null = null;
 
-      // Se "Habilitar Controle de Impressão" estiver ativado, cria a catraca fake primeiro
-      if (habilitarControleImpressao) {
-        // Primeiro, cria a catraca fake
-        const catracaFakeResponse = await fetch(
-          "https://api.nextfit.com.br/api/equipamento",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              Descricao: "Controle de Impressão",
-              Tipo: 1,
-              ModeloCatraca: 20, // Definindo tipo de catraca fake
-              ModeloLeitorBiometria: null,
-              ModeloReconhecimentoFacial: null,
-              ModeloTeclado: null,
-              Fake: {
-                Giro: 2,
-                UtilizaImpressaoTreino: true,
-                CodigoImpressoraTreino: 14243,
-                ImpressoraTreino: {
-                  Descricao: descricaoImpressora,
-                  Tipo: 3, // Tipo para impressora real
-                  ModeloCatraca: null,
-                  ModeloLeitorBiometria: null,
-                  ModeloReconhecimentoFacial: null,
-                  ModeloTeclado: null,
-                  ModeloImpressora: 1, // Vinculando a impressora com a catraca fake
-                },
-              },
-            }),
-          }
-        );
-
-        if (!catracaFakeResponse.ok) {
-          throw new Error("Erro ao criar catraca fake");
-        }
-
-        const catracaFakeData = await catracaFakeResponse.json();
-        catracaFakeId = catracaFakeData.Content.Id; // Pega o ID da catraca fake criada
-      }
-
-      // Agora cria a impressora real (se não foi criada junto com a catraca fake)
-      impressoraPayload = {
+      // Cria a impressora correta primeiro
+      const payloadImpressora = {
         Descricao: descricaoImpressora,
-        Tipo: 3, // Tipo de equipamento Impressora
+        Tipo: 3, // Tipo 3 para impressora
         ModeloCatraca: null,
         ModeloLeitorBiometria: null,
+        ModeloImpressora: 1, // Modelo específico para impressora
         ModeloReconhecimentoFacial: null,
         ModeloTeclado: null,
-        ModeloImpressora: 1, // Definindo como tipo de impressora
       };
 
-      const impressoraResponse = await fetch(
+      const responseImpressora = await fetch(
         "https://api.nextfit.com.br/api/equipamento",
         {
           method: "POST",
@@ -1326,12 +1281,59 @@ const PageMenuDeAcesso: React.FC = () => {
             Authorization: `Bearer ${authToken}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(impressoraPayload),
+          body: JSON.stringify(payloadImpressora),
         }
       );
 
-      if (!impressoraResponse.ok) {
+      if (!responseImpressora.ok) {
         throw new Error("Erro ao criar impressora");
+      }
+
+      const respostaImpressora: RespostaBaseApi<{ Id: number }> =
+        await responseImpressora.json();
+      impressoraId = respostaImpressora.Content.Id; // Salva o ID da impressora criada
+
+      // Se a checkbox estiver marcada, cria a catraca fake e vincula a impressora
+      if (habilitarControleImpressao) {
+        const payloadCatraca = {
+          Descricao: "Controle de Impressão",
+          Tipo: 1, // Tipo 1 para catraca
+          ModeloCatraca: 20, // Modelo específico para catraca fake
+          ModeloLeitorBiometria: null,
+          ModeloImpressora: null,
+          ModeloReconhecimentoFacial: null,
+          ModeloTeclado: null,
+          Fake: {
+            Giro: 2,
+            UtilizaImpressaoTreino: true,
+            CodigoImpressoraTreino: impressoraId, // Usa o ID da impressora criada
+            ImpressoraTreino: {
+              Descricao: descricaoImpressora, // Descrição da impressora correta
+              Tipo: 3, // Tipo 3 para impressora
+              ModeloCatraca: null,
+              ModeloLeitorBiometria: null,
+              ModeloImpressora: 1, // Modelo específico para impressora
+              ModeloReconhecimentoFacial: null,
+              ModeloTeclado: null,
+            },
+          },
+        };
+
+        const responseCatraca = await fetch(
+          "https://api.nextfit.com.br/api/equipamento",
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payloadCatraca),
+          }
+        );
+
+        if (!responseCatraca.ok) {
+          throw new Error("Erro ao criar catraca fake");
+        }
       }
 
       enqueueSnackbar("Impressora criada com sucesso!", { variant: "success" });

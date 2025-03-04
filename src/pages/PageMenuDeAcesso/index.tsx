@@ -14,6 +14,11 @@ import PhoneIcon from "@mui/icons-material/Phone";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { CheckCircle, Cancel } from "@mui/icons-material";
+import DialpadIcon from "@mui/icons-material/Dialpad";
+import PortraitIcon from "@mui/icons-material/Portrait";
+import FingerprintIcon from "@mui/icons-material/Fingerprint";
+import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
 import {
   Box,
   Button,
@@ -35,6 +40,9 @@ import {
   MenuItem,
   FormControlLabel,
   Checkbox,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
 import { enqueueSnackbar, useSnackbar } from "notistack";
 import { URLSearchParams } from "url";
@@ -165,6 +173,8 @@ const PageMenuDeAcesso: React.FC = () => {
   const [observacaoTexto, setObservacaoTexto] = useState("");
   const [habilitarControleImpressao, setHabilitarControleImpressao] =
     useState(false);
+  const [modalAcessosOpen, setModalAcessosOpen] = useState(false);
+  const [acessos, setAcessos] = useState<any[]>([]);
 
   const navigate = useNavigate();
 
@@ -1615,6 +1625,61 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
+  const buscarUltimosAcessos = async () => {
+    const authToken =
+      LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
+
+    try {
+      const response = await fetch(
+        "https://api.nextfit.com.br/api/relcliente/RecuperarAcessosContrato?AgruparAcessosPorCliente=false&CodigoCliente=null&DataHoraFimStr=04%2F03%2F2025+08:02&DataHoraIniStr=03%2F03%2F2025+08:02&TipoAcesso=1&limit=30&page=1",
+        getOptions(EVerboHttp.GET, undefined, authToken)
+      );
+
+      if (!response.ok) {
+        throw new Error("Erro ao buscar acessos dos clientes");
+      }
+
+      const resposta = await response.json();
+
+      const acessos = resposta.Content.map(
+        (acesso: {
+          AcessoLiberado: boolean;
+          ModoReconhecimento: number;
+          NomeCliente: string;
+          DataHora: string;
+        }) => ({
+          Status: acesso.AcessoLiberado ? "Liberado" : "Negado",
+          ModoReconhecimento: acesso.ModoReconhecimento,
+          NomeCliente: acesso.NomeCliente,
+          DataHora: new Date(acesso.DataHora).toLocaleString("pt-BR", {
+            timeZone: "America/Sao_Paulo",
+          }),
+        })
+      );
+
+      console.log(acessos);
+      return acessos;
+    } catch (error) {
+      console.error("Erro ao buscar acessos:", error);
+      return [];
+    }
+  };
+
+  const renderModoReconhecimento = (tipo: number) => {
+    switch (tipo) {
+      case 1:
+        return <DialpadIcon />; //teclado
+      case 2:
+        return <FingerprintIcon />; //biometria
+      case 3:
+        return <QrCodeScannerIcon />; //qrcode
+      case 4:
+        return <PortraitIcon />; //facial
+      default:
+        return <Typography variant="body1">-</Typography>;
+    }
+  };
+
   return (
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <Box
@@ -1748,6 +1813,11 @@ const PageMenuDeAcesso: React.FC = () => {
           </Button>
           <Button
             variant="contained"
+            onClick={async () => {
+              const dados = await buscarUltimosAcessos();
+              setAcessos(dados);
+              setModalAcessosOpen(true);
+            }}
             sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
           >
             Visualizar últimos acessos
@@ -3266,6 +3336,79 @@ const PageMenuDeAcesso: React.FC = () => {
                 </Button>
               </Box>
             </>
+          )}
+        </Box>
+      </Modal>
+
+      {/* Modal para exibir os acessos */}
+      <Modal open={modalAcessosOpen} onClose={() => setModalAcessosOpen(false)}>
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 600,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+            maxHeight: "80vh",
+            overflowY: "auto",
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Últimos Acessos
+          </Typography>
+
+          {acessos.length > 0 ? (
+            <TableContainer
+              component={Paper}
+              sx={{ maxHeight: 400, overflow: "auto" }}
+            >
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell>Nome do Cliente</TableCell>
+                    <TableCell>Data e Hora</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {acessos.map((acesso, index) => (
+                    <TableRow key={index} hover>
+                      <TableCell>
+                        <Tooltip
+                          title={
+                            acesso.Status === "Liberado"
+                              ? "Acesso liberado"
+                              : "Acesso negado"
+                          }
+                        >
+                          {acesso.Status === "Liberado" ? (
+                            <CheckCircle sx={{ color: "green" }} />
+                          ) : (
+                            <Cancel sx={{ color: "red" }} />
+                          )}
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>
+                        {renderModoReconhecimento(acesso.ModoReconhecimento)}
+                      </TableCell>
+                      <TableCell>{acesso.NomeCliente}</TableCell>
+                      <TableCell>{acesso.DataHora}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body1">Nenhum acesso encontrado.</Typography>
           )}
         </Box>
       </Modal>

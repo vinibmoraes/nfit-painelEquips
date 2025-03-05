@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { SnackbarProvider } from "notistack";
 import App from "./App";
 import { SnackbarContent } from "@mui/material";
+import NotificacaoPonto from "../src/services/notificacaoPonto";
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 
@@ -29,6 +30,8 @@ root.render(
       ),
     }}
   >
+    {/* Componente que dispara os lembretes de ponto */}
+    <NotificacaoPonto />
     <App />
   </SnackbarProvider>
 );

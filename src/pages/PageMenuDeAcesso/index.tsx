@@ -1631,8 +1631,9 @@ const PageMenuDeAcesso: React.FC = () => {
 
     // Obtendo a data e hora atuais
     const agora = new Date();
-    const quarentaEOitoHorasAtras = new Date();
-    quarentaEOitoHorasAtras.setHours(agora.getHours() - 48); // Subtrai 48 horas
+    const quarentaEOitoHorasAtras = new Date(
+      agora.getTime() - 48 * 60 * 60 * 1000
+    ); // Subtrai 48 horas corretamente
 
     // Função para formatar a data no padrão dd/MM/yyyy+HH:mm
     const formatarData = (data: Date) => {
@@ -1642,7 +1643,7 @@ const PageMenuDeAcesso: React.FC = () => {
       const horas = String(data.getHours()).padStart(2, "0");
       const minutos = String(data.getMinutes()).padStart(2, "0");
 
-      return `${dia}%2F${mes}%2F${ano}+${horas}%3A${minutos}`; // Encode direto no formato esperado
+      return `${dia}%2F${mes}%2F${ano}+${horas}%3A${minutos}`; // Encode correto
     };
 
     const dataHoraFimStr = formatarData(agora);
@@ -3383,7 +3384,7 @@ const PageMenuDeAcesso: React.FC = () => {
             component="h2"
             sx={{ mb: 2, display: "flex", justifyContent: "center" }}
           >
-            Últimos Acessos
+            Últimos Acessos:
           </Typography>
 
           {acessos.length > 0 ? (
@@ -3429,7 +3430,9 @@ const PageMenuDeAcesso: React.FC = () => {
               </Table>
             </TableContainer>
           ) : (
-            <Typography variant="body1">Nenhum acesso encontrado.</Typography>
+            <Typography variant="body1">
+              Nenhum acesso recente encontrado.
+            </Typography>
           )}
         </Box>
       </Modal>

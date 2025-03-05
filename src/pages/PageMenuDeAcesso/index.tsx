@@ -1629,14 +1629,35 @@ const PageMenuDeAcesso: React.FC = () => {
     const authToken =
       LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
+    // Obtendo a data e hora atuais
+    const agora = new Date();
+    const quarentaEOitoHorasAtras = new Date();
+    quarentaEOitoHorasAtras.setHours(agora.getHours() - 48); // Subtrai 48 horas
+
+    // Função para formatar a data no padrão dd/MM/yyyy+HH:mm
+    const formatarData = (data: Date) => {
+      const dia = String(data.getDate()).padStart(2, "0");
+      const mes = String(data.getMonth() + 1).padStart(2, "0"); // Meses começam do 0
+      const ano = data.getFullYear();
+      const horas = String(data.getHours()).padStart(2, "0");
+      const minutos = String(data.getMinutes()).padStart(2, "0");
+
+      return `${dia}%2F${mes}%2F${ano}+${horas}%3A${minutos}`; // Encode direto no formato esperado
+    };
+
+    const dataHoraFimStr = formatarData(agora);
+    const dataHoraIniStr = formatarData(quarentaEOitoHorasAtras);
+
     try {
       const response = await fetch(
-        "https://api.nextfit.com.br/api/relcliente/RecuperarAcessosContrato?AgruparAcessosPorCliente=false&CodigoCliente=null&DataHoraFimStr=04%2F03%2F2025+08:02&DataHoraIniStr=03%2F03%2F2025+08:02&TipoAcesso=1&limit=30&page=1",
+        `https://api.nextfit.com.br/api/relcliente/RecuperarAcessosContrato?AgruparAcessosPorCliente=false&CodigoCliente=null&DataHoraFimStr=${dataHoraFimStr}&DataHoraIniStr=${dataHoraIniStr}&TipoAcesso=1&limit=30&page=1`,
         getOptions(EVerboHttp.GET, undefined, authToken)
       );
 
       if (!response.ok) {
-        throw new Error("Erro ao buscar acessos dos clientes");
+        throw new Error(
+          `Erro ao buscar acessos dos clientes: ${response.status}`
+        );
       }
 
       const resposta = await response.json();

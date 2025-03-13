@@ -19,6 +19,8 @@ import DialpadIcon from "@mui/icons-material/Dialpad";
 import PortraitIcon from "@mui/icons-material/Portrait";
 import FingerprintIcon from "@mui/icons-material/Fingerprint";
 import QrCodeScannerIcon from "@mui/icons-material/QrCodeScanner";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+
 import {
   Box,
   Button,
@@ -1635,21 +1637,19 @@ const PageMenuDeAcesso: React.FC = () => {
     const authToken =
       LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
-    // Obtendo a data e hora atuais
     const agora = new Date();
     const quarentaEOitoHorasAtras = new Date(
       agora.getTime() - 48 * 60 * 60 * 1000
-    ); // Subtrai 48 horas corretamente
+    );
 
-    // Função para formatar a data no padrão dd/MM/yyyy+HH:mm
     const formatarData = (data: Date) => {
       const dia = String(data.getDate()).padStart(2, "0");
-      const mes = String(data.getMonth() + 1).padStart(2, "0"); // Meses começam do 0
+      const mes = String(data.getMonth() + 1).padStart(2, "0");
       const ano = data.getFullYear();
       const horas = String(data.getHours()).padStart(2, "0");
       const minutos = String(data.getMinutes()).padStart(2, "0");
 
-      return `${dia}%2F${mes}%2F${ano}+${horas}%3A${minutos}`; // Encode correto
+      return `${dia}%2F${mes}%2F${ano}+${horas}%3A${minutos}`;
     };
 
     const dataHoraFimStr = formatarData(agora);
@@ -1675,6 +1675,7 @@ const PageMenuDeAcesso: React.FC = () => {
           ModoReconhecimento: number;
           NomeCliente: string;
           DataHora: string;
+          Motivo: string | null;
         }) => ({
           Status: acesso.AcessoLiberado ? "Liberado" : "Negado",
           ModoReconhecimento: acesso.ModoReconhecimento,
@@ -1682,6 +1683,7 @@ const PageMenuDeAcesso: React.FC = () => {
           DataHora: new Date(acesso.DataHora).toLocaleString("pt-BR", {
             timeZone: "America/Sao_Paulo",
           }),
+          Motivo: acesso.Motivo, // Adiciona o motivo
         })
       );
 
@@ -3405,6 +3407,7 @@ const PageMenuDeAcesso: React.FC = () => {
                     <TableCell>Tipo</TableCell>
                     <TableCell>Nome do Cliente</TableCell>
                     <TableCell>Data e Hora</TableCell>
+                    <TableCell>Motivo</TableCell> {/* Nova coluna */}
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -3430,6 +3433,18 @@ const PageMenuDeAcesso: React.FC = () => {
                       </TableCell>
                       <TableCell>{acesso.NomeCliente}</TableCell>
                       <TableCell>{acesso.DataHora}</TableCell>
+                      <TableCell>
+                        {acesso.Motivo ? (
+                          <Tooltip title={acesso.Motivo}>
+                            <span style={{ cursor: "pointer" }}>
+                              <InfoOutlinedIcon sx={{ fontSize: 20 }} />{" "}
+                              {/* Ícone de informação */}
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          "-"
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

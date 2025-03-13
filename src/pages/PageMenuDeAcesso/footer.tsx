@@ -1,9 +1,16 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, keyframes } from "@mui/material";
 import MapIcon from "@mui/icons-material/Map";
 import HomeIcon from "@mui/icons-material/Home";
-import { IconButton, Tooltip } from "@mui/material";
 import EventIcon from "@mui/icons-material/Event";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import { IconButton, Tooltip } from "@mui/material";
+
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+`;
 
 const Footer: React.FC = () => {
   const handleMapClick = () => {
@@ -18,7 +25,6 @@ const Footer: React.FC = () => {
       "_blank"
     );
   };
-
   const handleScheduleClick = () => {
     window.open("https://calendar.google.com/calendar/u/0/r?pli=1", "_blank");
   };
@@ -35,13 +41,11 @@ const Footer: React.FC = () => {
         padding: "10px",
         zIndex: 1000,
         display: "flex",
-        justifyContent: "space-between", // Distribute items with space between
+        justifyContent: "space-between",
         alignItems: "center",
       }}
     >
-      {/* Ícones à esquerda */}
       <Box sx={{ display: "flex", gap: "10px" }}>
-        {/* Ícone de Mapa */}
         <Tooltip title="Acessar Mapa de parceiros">
           <IconButton
             onClick={handleMapClick}
@@ -51,16 +55,13 @@ const Footer: React.FC = () => {
               boxShadow: 3,
               width: "32px",
               height: "32px",
-              "&:hover": {
-                backgroundColor: "#e0e0e0",
-              },
+              "&:hover": { backgroundColor: "#e0e0e0" },
             }}
           >
             <MapIcon sx={{ color: "#1976d2" }} />
           </IconButton>
         </Tooltip>
 
-        {/* Ícone de Casa */}
         <Tooltip title="Acessar Home dos equipamentos">
           <IconButton
             onClick={handleHomeClick}
@@ -70,16 +71,13 @@ const Footer: React.FC = () => {
               boxShadow: 3,
               width: "32px",
               height: "32px",
-              "&:hover": {
-                backgroundColor: "#e0e0e0",
-              },
+              "&:hover": { backgroundColor: "#e0e0e0" },
             }}
           >
             <HomeIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
           </IconButton>
         </Tooltip>
 
-        {/* Ícone de Agenda */}
         <Tooltip title="Acessar Agenda">
           <IconButton
             onClick={handleScheduleClick}
@@ -89,9 +87,7 @@ const Footer: React.FC = () => {
               boxShadow: 3,
               width: "32px",
               height: "32px",
-              "&:hover": {
-                backgroundColor: "#e0e0e0",
-              },
+              "&:hover": { backgroundColor: "#e0e0e0" },
             }}
           >
             <EventIcon sx={{ color: "#1976d2", fontSize: "24px" }} />
@@ -99,22 +95,34 @@ const Footer: React.FC = () => {
         </Tooltip>
       </Box>
 
-      {/* Texto centralizado */}
-      <Typography
-        variant="body2"
-        color="textSecondary"
-        sx={{ textAlign: "center", flexGrow: 1 }} // Centraliza o texto
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          flexGrow: 1,
+          justifyContent: "center",
+        }}
       >
-        © {new Date().getFullYear()} Next Fit. Time de equipamentos.
-      </Typography>
+        <Typography variant="body2" color="textSecondary">
+          Equipfamily
+        </Typography>
+        <FavoriteIcon
+          sx={{
+            // color: "#d32f2f",
+            color: "purple",
+            fontSize: "20px",
+            marginLeft: "5px",
+            animation: `${pulse} 1.5s infinite ease-in-out`,
+          }}
+        />
+      </Box>
 
-      {/* Versão beta alinhada à direita */}
       <Typography
         variant="body2"
         color="textSecondary"
         sx={{ textAlign: "right" }}
       >
-        versão beta 1.0
+        versão 1.1
       </Typography>
     </Box>
   );

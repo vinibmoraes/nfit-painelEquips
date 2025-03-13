@@ -175,6 +175,9 @@ const PageMenuDeAcesso: React.FC = () => {
     useState(false);
   const [modalAcessosOpen, setModalAcessosOpen] = useState(false);
   const [acessos, setAcessos] = useState<any[]>([]);
+  const [modalConfirmacaoUsuarioOpen, setModalConfirmacaoUsuarioOpen] =
+    useState(false);
+  const [novoUsuarioEmail, setNovoUsuarioEmail] = useState<string>("");
 
   const navigate = useNavigate();
 
@@ -483,11 +486,10 @@ const PageMenuDeAcesso: React.FC = () => {
     }
   };
 
-  const criarUsuarioCatraca = async () => {
+  const criarUsuarioCatraca = async (emailConfirmado?: string) => {
     const authToken =
       LocalStorageHelper.getItem<string>(keyUnidadeSelecionadaAuthToken) ?? "";
 
-    // Verifica se há um cadastro selecionado
     if (!cadastroSelecionado) {
       enqueueSnackbar("Nenhum cadastro selecionado.", {
         variant: "error",
@@ -495,31 +497,43 @@ const PageMenuDeAcesso: React.FC = () => {
       return;
     }
 
-    // Recupera o e-mail do usuário master
     const usuarioMaster = LocalStorageHelper.getItem<Usuario>(keyUsuarioMaster);
     const emailMaster = usuarioMaster?.Email || "";
 
-    // Formata o e-mail com "catraca" após o @
-    const emailCatraca = emailMaster.replace(/@[^.]+/, "@controle");
+    let emailCatraca = emailConfirmado; // Usa o email confirmado, se existir
 
-    const emailJaExiste = usuarios.some(
-      (usuario) => usuario.Email === emailCatraca
-    );
+    // Se não houver email confirmado, gera um novo email
+    if (!emailConfirmado) {
+      emailCatraca = emailMaster.replace(/@[^.]+/, "@controle");
+      let contador = 2;
 
-    if (emailJaExiste) {
-      enqueueSnackbar("O e-mail de controle já existe!", {
-        variant: "warning",
-      });
-      return; // Interrompe a criação do usuário
+      while (usuarios.some((usuario) => usuario.Email === emailCatraca)) {
+        emailCatraca = emailMaster.replace(/@[^.]+/, `@controle${contador}`);
+        contador++;
+      }
+
+      // Se o email gerado for "controle2" ou superior, abre o modal de confirmação
+      if (contador > 2) {
+        setNovoUsuarioEmail(emailCatraca);
+        setModalConfirmacaoUsuarioOpen(true);
+        return; // Sai da função sem criar o usuário
+      }
     }
 
-    // Define a data de nascimento (um dia antes da data atual)
-    const dataNascimento = new Date();
-    dataNascimento.setDate(dataNascimento.getDate() - 1); // Subtrai um dia
+    // Garantir que emailCatraca não seja undefined
+    if (!emailCatraca) {
+      enqueueSnackbar("Erro ao gerar o email do usuário.", {
+        variant: "error",
+      });
+      return;
+    }
 
-    // Obtém o CodigoPerfilAcesso do perfil de administrador
+    // Cria o usuário com o email gerado ou confirmado
+    const dataNascimento = new Date();
+    dataNascimento.setDate(dataNascimento.getDate() - 1);
+
     const codigoPerfilAcesso = await obterPerfilAdministrador(
-      cadastroSelecionado.CodigoUnidade.toString() // Agora garantimos que cadastroSelecionado não é null/undefined
+      cadastroSelecionado.CodigoUnidade.toString()
     );
 
     if (!codigoPerfilAcesso) {
@@ -529,28 +543,25 @@ const PageMenuDeAcesso: React.FC = () => {
       return;
     }
 
-    // Dados do usuário
     const usuarioData = {
       Nome: "Controle de acesso (Não alterar)",
-      Email: emailCatraca,
+      Email: emailCatraca, // Agora emailCatraca é garantidamente uma string
       TelefoneCompleto: "(99)999999999",
       DddFone: "99",
       Fone: "999999999",
       Senha: "123456a",
-      DataNascimento: dataNascimento.toISOString(), // Formato ISO
+      DataNascimento: dataNascimento.toISOString(),
       TipoCadastro: 1,
       TipoConselho: 1,
-      CodigoUnidadePreferencial: cadastroSelecionado.CodigoUnidade.toString(), // Convertido para string
+      CodigoUnidadePreferencial: cadastroSelecionado.CodigoUnidade.toString(),
       Unidades: [
         {
-          CodigoUnidade: cadastroSelecionado.CodigoUnidade.toString(), // Convertido para string
-          CodigoPerfilAcesso: codigoPerfilAcesso, // Perfil de acesso obtido dinamicamente
+          CodigoUnidade: cadastroSelecionado.CodigoUnidade.toString(),
+          CodigoPerfilAcesso: codigoPerfilAcesso,
         },
       ],
-      Usuario: emailCatraca,
+      Usuario: emailCatraca, // Agora emailCatraca é garantidamente uma string
     };
-
-    console.log("Payload enviado:", usuarioData); // Log para depuração
 
     try {
       const response = await fetch("https://api.nextfit.com.br/api/usuario", {
@@ -562,11 +573,9 @@ const PageMenuDeAcesso: React.FC = () => {
         body: JSON.stringify(usuarioData),
       });
 
-      console.log("Resposta da API:", response); // Log para depuração
-
       if (!response.ok) {
-        const errorResponse = await response.json(); // Captura a resposta de erro da API
-        console.error("Resposta de erro da API:", errorResponse); // Log para depuração
+        const errorResponse = await response.json();
+        console.error("Resposta de erro da API:", errorResponse);
         throw new Error(
           errorResponse.Message || "Erro ao criar usuário catraca"
         );
@@ -578,9 +587,7 @@ const PageMenuDeAcesso: React.FC = () => {
         enqueueSnackbar("Usuário catraca criado com sucesso!", {
           variant: "success",
         });
-        console.log("ID do usuário criado:", resposta.Content.Id);
 
-        // Atualiza a lista de usuários no frontend
         const novoUsuario: Usuario = {
           Id: resposta.Content.Id,
           Nome: usuarioData.Nome,
@@ -588,7 +595,7 @@ const PageMenuDeAcesso: React.FC = () => {
           TelefoneCompleto: usuarioData.TelefoneCompleto,
           DddFone: usuarioData.DddFone,
           Fone: usuarioData.Fone,
-          TipoPerfil: 1, // Defina o tipo de perfil conforme necessário
+          TipoPerfil: 1,
           Inativo: false,
           TipoCadastro: usuarioData.TipoCadastro,
           TipoConselho: usuarioData.TipoConselho,
@@ -598,7 +605,6 @@ const PageMenuDeAcesso: React.FC = () => {
           AcessoBloqueado: false,
         };
 
-        // Adiciona o novo usuário ao estado `usuarios`
         setUsuarios((prevUsuarios) => [...prevUsuarios, novoUsuario]);
       } else {
         throw new Error(resposta.Message || "Erro ao criar usuário catraca");
@@ -1814,7 +1820,7 @@ const PageMenuDeAcesso: React.FC = () => {
         >
           <Button
             variant="contained"
-            onClick={criarUsuarioCatraca}
+            onClick={() => criarUsuarioCatraca()}
             sx={{ flexGrow: 1, height: "100%", minWidth: 0, width: "100%" }}
           >
             Criar usuário catraca
@@ -3434,6 +3440,55 @@ const PageMenuDeAcesso: React.FC = () => {
               Nenhum acesso recente encontrado.
             </Typography>
           )}
+        </Box>
+      </Modal>
+
+      {/* Modal para confirmar criação de usuário */}
+      <Modal
+        open={modalConfirmacaoUsuarioOpen}
+        onClose={() => setModalConfirmacaoUsuarioOpen(false)}
+      >
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 400,
+            bgcolor: "background.paper",
+            boxShadow: 24,
+            p: 4,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ mb: 2, display: "flex", justifyContent: "center" }}
+          >
+            Um usuário de controle já existe!
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            Deseja criar um novo usuário de controle descrito como "
+            {novoUsuarioEmail}"?
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mt: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setModalConfirmacaoUsuarioOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={async () => {
+                setModalConfirmacaoUsuarioOpen(false); // Fecha o modal
+                await criarUsuarioCatraca(novoUsuarioEmail); // Passa o email confirmado
+              }}
+            >
+              Confirmar
+            </Button>
+          </Box>
         </Box>
       </Modal>
 
